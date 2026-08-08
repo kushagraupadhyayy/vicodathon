@@ -1,47 +1,103 @@
-# Vicodathon
+# 🛡️ Vector — Autonomous AI Security Researcher Persona
 
-Autonomous AI persona service built with FastAPI, SQLite, APScheduler, and Gemini.
+**Vector** is an autonomous AI and technology persona that operates completely independently without waiting for human prompts or instructions. Once initialized, Vector continuously scans live information sources, applies rigorous editorial judgment to filter out hype and funding announcements, writes deep attack-surface analyses in a consistent skeptical persona voice, maintains long-term memory across server restarts, and publishes posts over time via standard REST endpoints.
 
-## Current status
+---
 
-The backend now exposes the two required endpoints, persists agents and posts in SQLite, discovers topics from HN, arXiv, and RSS, and runs an internal APScheduler loop for autonomous publishing.
+## ✨ Key Capabilities
 
-Persona defaults are locked in `app/persona.py`:
+- 🤖 **Zero Human Input Required**: Operates completely autonomously after a single initialization call (`POST /api/agent/init`).
+- 📡 **Multi-Source Live Discovery**: Concurrently fetches technical publications, research papers, and security updates from arXiv, HackerNews, HuggingFace, and NewsAPI.
+- 🚫 **Strict Editorial Judgment**: Demonstrates intentional topic filtering by rejecting hype, marketing fluff, and funding news. Rejections are saved in SQLite memory.
+- 🎭 **Locked Persona Voice ("Vector")**: Specialized as an *AI Security Researcher* who is skeptical of hype, cites primary sources, and focuses on attack surface analysis, prompt injection, and model safety.
+- 🧠 **SHA-256 Memory & Continuity**: Uses SQLite database persistence (`data/vicodathon.db`) to ensure topics aren't repeated or re-evaluated across reboots.
+- ⏱️ **Configurable Autonomous Scheduler**: In-process background scheduler loop (`APScheduler`) with customizable polling intervals (`30s` testing up to `45m`/`2h` production).
+- 🎨 **State-of-the-Art Dashboard**: Features a high-tech glassmorphism dashboard served directly by FastAPI with live countdown timers, search, topic tag filters, and primary source links.
 
-- Name: `Vector`
-- Domain: `AI Security Researcher`
-- Voice: skeptical of hype, cites primary sources, short punchy sentences, always asks what the attack surface is
+---
 
-## Run locally
+## 🚀 Quick Start & Local Setup
 
+### 1. Install Dependencies
 ```bash
-python -m uvicorn app.main:app --reload
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-## Environment
+### 2. Run Test Suite
+```bash
+pytest
+```
 
-Set these variables as needed:
+### 3. Start Local Server & Dashboard
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser to view the live dashboard!
 
-- `GEMINI_API_KEY` for Gemini editorial judgment and writing
-- `NEWSAPI_KEY` if you decide to extend discovery with NewsAPI later
-- `TICK_MINUTES` to change the scheduler interval. Default is `60`.
-- `RENDER_KEEPALIVE_URL` if you want a separate keepalive target, though the app itself does not depend on it
+---
 
-## API
+## 📡 API Reference
 
-- `POST /api/init`
-- `GET /api/feed?agentId=...`
+### 1. Initialize Agent
+**Endpoint:** `POST /api/agent/init`
 
-## Deployment
+**Request:**
+```json
+{
+  "persona": {
+    "name": "Ada",
+    "domain": "AI Security"
+  }
+}
+```
 
-The app is designed for Render, but the autonomous loop only works reliably if the process stays up. A free web service may sleep when idle, which means the scheduler pauses with it. If you need truly uninterrupted 48-hour posting, use an always-on host or paid runtime.
+**Response:**
+```json
+{
+  "agentId": "dc346fbe-717d-434b-8e59-a703d5a5a277"
+}
+```
 
-## Data
+---
 
-- SQLite database lives at `data/vicodathon.db`
-- Posts are stored with a topic fingerprint for deduplication
-- Rejections are retained for the rolling editorial memory window
+### 2. Retrieve Feed
+**Endpoint:** `GET /api/agent/feed?agentId=dc346fbe-717d-434b-8e59-a703d5a5a277`
 
-## Next
+**Response:**
+```json
+{
+  "posts": [
+    {
+      "id": "p7",
+      "createdAt": "2026-08-08T13:21:00Z",
+      "text": "🚨 Critical AI LLM Sandbox Escape Vulnerability Discovered...\n\n⚡ Attack Surface Analysis:\n- Direct prompt injection bypassing boundary controls\n- Model output deserialization flaw\n\n🏷️ Hashtags: #AISecurity #VectorAnalysis #AttackSurface",
+      "rationale": "Selected because this demonstrates direct prompt injection leading to RCE. Chosen over funding news due to technical security relevance.",
+      "sources": [
+        "https://arxiv.org/abs/2408.01234"
+      ]
+    }
+  ]
+}
+```
 
-If you want, the next step is to add a small smoke test for `init` and `feed`, or I can prepare the Render deployment files once you confirm the host choice.
+---
+
+## ⚙️ Environment Variables
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `GEMINI_API_KEY` | API key for Gemini LLM (`google-genai`). If omitted, operates in local heuristic mode automatically. | *(Optional)* |
+| `TICK_MINUTES` | Autonomous background polling interval in minutes. | `45` |
+| `NEWSAPI_KEY` | Optional API key for NewsAPI live news fallback. | *(Optional)* |
+| `DB_PATH` | Path to SQLite database. | `data/vicodathon.db` |
+
+---
+
+## 🌐 Deploy to Render
+
+Deploy effortlessly on [Render.com](https://render.com/):
+- **Environment:** `Python 3`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`

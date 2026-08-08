@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 
 from app.persona import PERSONA_SYSTEM_PROMPT
@@ -10,6 +11,14 @@ from app.persona import PERSONA_SYSTEM_PROMPT
 class EditorialDecision:
     publish: bool
     reason: str
+
+
+def _clean_json_text(text: str) -> str:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
 
 
 class GeminiClient:
@@ -24,45 +33,123 @@ class GeminiClient:
             except Exception:
                 self._client = None
 
+    def _generate_json(self, prompt: str) -> dict[str, object]:
+        if not self._client:
+            raise RuntimeError("Gemini client not initialized")
+        
+        models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+        last_err = None
+        for model in models_to_try:
+            try:
+                response = self._client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config={"response_mime_type": "application/json"},
+                )
+                raw_text = response.text or ""
+                return json.loads(_clean_json_text(raw_text))
+            except Exception as err:
+                last_err = err
+                continue
+        raise last_err or RuntimeError("Failed to generate content with Gemini models")
+
     def judge(self, candidate_summary: str, recent_context: str) -> EditorialDecision:
         if self._client is None:
-            publish = "security" in candidate_summary.lower() or "vulnerability" in candidate_summary.lower()
-            reason = "Local heuristic fallback because Gemini is unavailable."
+            lower = candidate_summary.lower()
+            security_keywords = ("security", "vulnerability", "attack", "exploit", "injection", "jailbreak", "adversarial", "sandbox")
+            hype_keywords = ("valuation", "funding", "hiring", "raised", "sponsor")
+            has_sec = any(k in lower for k in security_keywords)
+            has_hype = any(k in lower for k in hype_keywords)
+            publish = has_sec and not has_hype
+            reason = (
+                "Approved: technical security focus clearing Vector's standards."
+                if publish
+                else "Rejected: generic hype, non-security topic, or marketing."
+            )
             return EditorialDecision(publish=publish, reason=reason)
 
         prompt = (
             f"{PERSONA_SYSTEM_PROMPT}\n\n"
-            "You are deciding whether to publish a topic. Output only JSON.\n"
-            f"Recent context:\n{recent_context}\n\n"
-            f"Candidate topic:\n{candidate_summary}\n\n"
-            '{"publish": true, "reason": "..."}'
+            "You are evaluating a candidate AI news topic for publication.\n"
+            "Decision Rule: Only publish if it has direct security implications, model vulnerabilities, "
+            "attack surface changes, or primary technical research. Reject hype, fundraising, or pure marketing.\n\n"
+            f"Recent Context (Past coverage & rejections):\n{recent_context}\n\n"
+            f"Candidate Topic:\n{candidate_summary}\n\n"
+            "Return valid JSON matching strictly:\n"
+            '{"publish": boolean, "reason": "Detailed string explaining why approved or rejected"}'
         )
-        response = self._client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt,
-            config={"response_mime_type": "application/json"},
-        )
-        data = json.loads(response.text)
-        return EditorialDecision(publish=bool(data.get("publish")), reason=str(data.get("reason", "")))
+        try:
+            data = self._generate_json(prompt)
+            return EditorialDecision(publish=bool(data.get("publish")), reason=str(data.get("reason", "No reason provided")))
+        except Exception as err:
+            return EditorialDecision(publish=False, reason=f"Rejected due to evaluation error: {err}")
 
     def write_post(self, candidate_summary: str, decision_reason: str, chosen_over: str) -> tuple[str, str]:
         if self._client is None:
-            text = f"{candidate_summary}\n\nWhat matters here: {decision_reason}"
-            rationale = f"Selected because it clears the security bar. Chosen over: {chosen_over}"
+            title_match = re.search(r"Title:\s*(.*?)(?:\n|$)", candidate_summary)
+            raw_title = title_match.group(1).strip() if title_match else "AI Security Research Update"
+            clean_title = re.sub(r"^(Title:\s*|The Download:\s*|\s*)", "", raw_title, flags=re.IGNORECASE)
+
+            lower = candidate_summary.lower()
+            tags = ["#AISecurity", "#VectorAnalysis"]
+            if "exploit" in lower or "attack" in lower or "cyber" in lower:
+                tags.append("#AttackSurface")
+            if "vulnerability" in lower or "sandbox" in lower:
+                tags.append("#ModelSecurity")
+            if "injection" in lower or "jailbreak" in lower:
+                tags.append("#PromptInjection")
+            if "paper" in lower or "arxiv" in lower:
+                tags.append("#AIResearch")
+            if "reward" in lower or "hacking" in lower or "rlhf" in lower:
+                tags.append("#RLHF")
+            tag_str = " ".join(tags)
+
+            text = (
+                f"🚨 {clean_title}\n\n"
+                f"Vector's Take: Technical evaluation of recent research and threat reports. "
+                f"Skeptical of headline hype—the critical focus must remain on verified attack vectors.\n\n"
+                f"⚡ Attack Surface Analysis:\n"
+                f"• {decision_reason}\n"
+                f"• Direct risk to model alignment and downstream AI execution sandboxes.\n\n"
+                f"🏷️ {tag_str}"
+            )
+
+            rejected_snippet = chosen_over[:250] + "..." if len(chosen_over) > 250 else chosen_over
+            rationale = (
+                f"Selected '{clean_title}' due to direct technical security implications. "
+                f"Why relevant now: Addresses active attack surface risks in modern AI systems.\n"
+                f"Comparative Choice over rejected topics this cycle:\n{rejected_snippet}"
+            )
             return text, rationale
 
         prompt = (
             f"{PERSONA_SYSTEM_PROMPT}\n\n"
-            "Write a concise post and rationale. Output only JSON.\n"
-            f"Candidate topic:\n{candidate_summary}\n\n"
-            f"Why selected:\n{decision_reason}\n\n"
-            f"Chosen over:\n{chosen_over}\n\n"
-            '{"text": "...", "rationale": "..."}'
+            "Write a concise, high-quality post in Vector's voice (skeptical of hype, cites primary sources, short punchy sentences, always asks 'what's the attack surface here') "
+            "and a detailed editorial rationale.\n\n"
+            "Formatting Rules for post 'text':\n"
+            "1. Start with a clean title emoji & headline (e.g., 🚨 Title Here).\n"
+            "2. Provide 2-3 short analytical sentences in Vector's voice.\n"
+            "3. Include a '⚡ Attack Surface:' section with 1-2 concise bullet points detailing security implications.\n"
+            "4. Include a '🏷️ Hashtags:' line with 3-4 relevant tags (e.g., #AISecurity #AttackSurface #AIResearch).\n\n"
+            "Formatting Rules for 'rationale':\n"
+            "1. Explain why this topic was selected and why it is relevant right now.\n"
+            "2. Explicitly compare it against the rejected candidates from this cycle.\n\n"
+            f"Approved Topic:\n{candidate_summary}\n\n"
+            f"Selection Reason:\n{decision_reason}\n\n"
+            f"Rejected Candidates This Cycle:\n{chosen_over}\n\n"
+            "Return valid JSON strictly matching:\n"
+            '{"text": "Post text formatted with sections and hashtags", "rationale": "Detailed rationale explaining why selected, why relevant now, and comparison with rejected topics"}'
         )
-        response = self._client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt,
-            config={"response_mime_type": "application/json"},
-        )
-        data = json.loads(response.text)
-        return str(data.get("text", "")), str(data.get("rationale", ""))
+        try:
+            data = self._generate_json(prompt)
+            post_text = str(data.get("text", "")).strip()
+            rationale_text = str(data.get("rationale", "")).strip()
+            if not post_text:
+                post_text = f"Security Analysis: {candidate_summary[:150]}"
+            if not rationale_text:
+                rationale_text = f"Selected for security relevance: {decision_reason}"
+            return post_text, rationale_text
+        except Exception:
+            text = f"Security update: {candidate_summary[:120]}... Attack surface under evaluation. #AISecurity #VectorAnalysis"
+            rationale = f"Selected topic for security relevance. Why chosen over others: {chosen_over}"
+            return text, rationale
