@@ -126,16 +126,52 @@ class Database:
             row = connection.execute("SELECT 1 FROM agent WHERE agent_id = ?", (agent_id,)).fetchone()
         return row is not None
 
+    def get_latest_agent_id(self) -> str | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT agent_id FROM agent ORDER BY initialized_at DESC LIMIT 1").fetchone()
+        return str(row["agent_id"]) if row else None
+
+
+    def list_rejections(self, agent_id: str) -> list[dict[str, object]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT id, seen_at, topic_summary, reject_reason, topic_fingerprint FROM rejected_topics WHERE agent_id = ? ORDER BY seen_at DESC LIMIT 50",
+                (agent_id,),
+            ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "seen_at": row["seen_at"],
+                "topic_summary": row["topic_summary"],
+                "reject_reason": row["reject_reason"],
+                "topic_fingerprint": row["topic_fingerprint"],
+            }
+            for row in rows
+        ]
+
+
     @staticmethod
     def _row_to_post(row: sqlite3.Row) -> dict[str, object]:
+
+        sources = row["sources"]
+        if isinstance(sources, str):
+            try:
+                sources = json.loads(sources)
+            except Exception:
+                sources = [sources] if sources else []
+        elif not isinstance(sources, list):
+            sources = []
+
         return {
             "id": row["id"],
+            "createdAt": row["created_at"],
             "created_at": row["created_at"],
             "text": row["text"],
             "rationale": row["rationale"],
-            "sources": json.loads(row["sources"]),
-            "topicFingerprint": row["topic_fingerprint"],
+            "sources": sources,
+            "topic_fingerprint": row["topic_fingerprint"],
         }
+
 
 
 def datetime_utc_days_ago(days: int) -> str:
