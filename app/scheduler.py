@@ -61,27 +61,27 @@ class AutonomousLoop:
     def start(self, agent_id: str) -> None:
         self.active_agent_id = agent_id
         self.ensure_started()
-        if not self.scheduler.get_job("autonomous-loop"):
-            seconds = max(1, int(self.tick_minutes * 60))
-            self.scheduler.add_job(
-                self.tick,
-                "interval",
-                seconds=seconds,
-                next_run_time=datetime.now(timezone.utc) + timedelta(seconds=seconds),
-                id="autonomous-loop",
-                replace_existing=True,
-            )
+        seconds = max(1, int(self.tick_minutes * 60))
+        self.scheduler.add_job(
+            self.tick,
+            "interval",
+            seconds=seconds,
+            next_run_time=datetime.now(timezone.utc) + timedelta(seconds=seconds),
+            id="autonomous-loop",
+            replace_existing=True,
+        )
 
     def ensure_started(self) -> None:
         if not self.scheduler.running:
             self.scheduler.start()
 
-    def get_next_run_time(self) -> str | None:
+    def get_next_run_time(self) -> str:
         if self.scheduler:
             job = self.scheduler.get_job("autonomous-loop")
             if job and job.next_run_time:
                 return job.next_run_time.isoformat()
-        return None
+        seconds = max(1, int(self.tick_minutes * 60))
+        return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
 
     def update_interval(self, minutes: float) -> None:
         if minutes < 0.1:

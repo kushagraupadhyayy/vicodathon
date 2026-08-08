@@ -726,6 +726,12 @@ INDEX_HTML = """<!DOCTYPE html>
       </div>
 
       <div class="metric-card">
+        <div class="metric-label">Publication Queue</div>
+        <div class="metric-value" id="metric-queue-count" style="color: var(--accent-cyan);">0</div>
+        <div class="metric-sub">Approved topics in queue</div>
+      </div>
+
+      <div class="metric-card">
         <div class="metric-label">Editorial Rejections</div>
         <div class="metric-value" id="metric-rejections-count">0</div>
         <div class="metric-sub">Hype & duplicate topics filtered</div>
@@ -750,7 +756,7 @@ INDEX_HTML = """<!DOCTYPE html>
     <section class="filter-section">
       <div class="search-box">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Search posts or rejections by title, keyword, domain..." oninput="applyFilters()">
+        <input type="text" id="search-input" placeholder="Search posts, queued topics, or rejections by keyword..." oninput="applyFilters()">
       </div>
       <div class="tag-group">
         <div class="tag-pill active" onclick="filterByTag('all', this)">All Topics</div>
@@ -764,10 +770,13 @@ INDEX_HTML = """<!DOCTYPE html>
     <!-- Tabs Navigation -->
     <div class="tabs-header">
       <button class="tab-btn active" id="tab-feed" onclick="switchTab('feed')">
-        Published Feed <span class="tab-count" id="posts-count">0</span>
+        📰 Published Feed <span class="tab-count" id="posts-count">0</span>
+      </button>
+      <button class="tab-btn" id="tab-queue" onclick="switchTab('queue')">
+        📥 Publication Queue <span class="tab-count" id="queue-count">0</span>
       </button>
       <button class="tab-btn" id="tab-rejections" onclick="switchTab('rejections')">
-        Editorial Memory Rejections <span class="tab-count" id="rejections-count">0</span>
+        🛡️ Editorial Memory Rejections <span class="tab-count" id="rejections-count">0</span>
       </button>
     </div>
 
@@ -777,6 +786,17 @@ INDEX_HTML = """<!DOCTYPE html>
         <div class="empty-state">
           <h3>No Published Posts Found</h3>
           <p>Vector is discovering candidate topics and evaluating security relevance. Click 'Run Tick Now' to trigger a discovery run immediately!</p>
+          <button class="btn btn-primary" onclick="triggerTick()">⚡ Run Discovery Tick Now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Queue Tab Content -->
+    <div id="queue-tab-content" style="display:none;">
+      <div class="feed-list" id="queue-list">
+        <div class="empty-state">
+          <h3>Publication Queue Empty</h3>
+          <p>No candidate topics currently queued. Vector will evaluate and queue approved security topics on the next tick cycle!</p>
           <button class="btn btn-primary" onclick="triggerTick()">⚡ Run Discovery Tick Now</button>
         </div>
       </div>
@@ -797,6 +817,7 @@ INDEX_HTML = """<!DOCTYPE html>
     let currentAgentId = localStorage.getItem('vicodathon_agent_id');
     let targetNextRunTime = null;
     let cachedPosts = [];
+    let cachedQueue = [];
     let cachedRejections = [];
     let activeTagFilter = 'all';
 
@@ -824,6 +845,7 @@ INDEX_HTML = """<!DOCTYPE html>
         await initNewAgent();
       } else {
         await loadFeed();
+        await loadQueue();
         await loadRejections();
         await loadStatus();
       }
@@ -870,6 +892,11 @@ INDEX_HTML = """<!DOCTYPE html>
 
       if (diff <= 0) {
         document.getElementById('countdown-timer').textContent = '00:00';
+        if (Math.abs(diff) < 3000) {
+          loadStatus();
+          loadFeed();
+          loadQueue();
+        }
         return;
       }
 
@@ -893,6 +920,7 @@ INDEX_HTML = """<!DOCTYPE html>
             targetNextRunTime = data.next_run_time;
           }
           await loadFeed();
+          await loadQueue();
           await loadRejections();
           await loadStatus();
         }
@@ -915,6 +943,7 @@ INDEX_HTML = """<!DOCTYPE html>
         localStorage.setItem('vicodathon_agent_id', currentAgentId);
         document.getElementById('agent-id-display').textContent = currentAgentId.substring(0, 18) + '...';
         await loadFeed();
+        await loadQueue();
         await loadRejections();
         await loadStatus();
       } catch (err) {
@@ -931,6 +960,7 @@ INDEX_HTML = """<!DOCTYPE html>
       try {
         await fetch('/api/agent/trigger-tick', { method: 'POST' });
         await loadFeed();
+        await loadQueue();
         await loadRejections();
         await loadStatus();
       } catch (err) {
@@ -968,6 +998,22 @@ INDEX_HTML = """<!DOCTYPE html>
         renderFeed();
       } catch (err) {
         console.error('Error loading feed:', err);
+      }
+    }
+
+    async function loadQueue() {
+      if (!currentAgentId) return;
+      try {
+        const res = await fetch('/api/agent/queue?agentId=' + currentAgentId);
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedQueue = data.queue || [];
+        const count = data.count || cachedQueue.length;
+        document.getElementById('queue-count').textContent = count;
+        document.getElementById('metric-queue-count').textContent = count;
+        renderQueue();
+      } catch (err) {
+        console.error('Error loading queue:', err);
       }
     }
 
@@ -1016,6 +1062,7 @@ INDEX_HTML = """<!DOCTYPE html>
         <div class="post-card">
           <div class="post-header">
             <div class="author-info">
+              <div class="author-avatar"><img src="/static/vector_icon.png" alt="Vector Shield"></div>
               <div class="author-name">Vector AI</div>
             </div>
             <div class="post-time">${formatDate(post.created_at)}</div>
@@ -1037,6 +1084,65 @@ INDEX_HTML = """<!DOCTYPE html>
               `).join('')}
             </div>
             <div class="fingerprint-tag">ID: ${(post.topic_fingerprint || post.topicFingerprint || post.id).substring(0, 8)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderQueue() {
+      const listEl = document.getElementById('queue-list');
+      const searchQuery = (document.getElementById('search-input').value || '').toLowerCase();
+
+      let filtered = cachedQueue.filter(item => {
+        return !searchQuery || 
+          item.title.toLowerCase().includes(searchQuery) || 
+          item.summary.toLowerCase().includes(searchQuery) ||
+          item.decision_reason.toLowerCase().includes(searchQuery);
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <h3>Publication Queue Empty</h3>
+            <p>No candidate topics currently queued. Vector will evaluate and queue approved security topics on the next tick cycle!</p>
+            <button class="btn btn-primary" onclick="triggerTick()">⚡ Run Discovery Tick Now</button>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map((item, idx) => `
+        <div class="post-card" style="border-left: 4px solid var(--accent-cyan);">
+          <div class="post-header">
+            <div class="author-info">
+              <span class="badge-status" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);">
+                📥 Queued Position #${idx + 1}
+              </span>
+            </div>
+            <div class="post-time">${formatDate(item.queued_at)}</div>
+          </div>
+
+          <div style="font-family:'Outfit', sans-serif; font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:10px;">
+            ${escapeHtml(item.title)}
+          </div>
+
+          <div class="post-body" style="color:var(--text-secondary); font-size:14px; margin-bottom:14px;">
+            ${escapeHtml(item.summary)}
+          </div>
+
+          <div style="background:rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.2); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--accent-cyan); margin-bottom:12px;">
+            <strong>✓ Editorial Approval Reason:</strong> ${escapeHtml(item.decision_reason)}
+          </div>
+
+          <div class="post-footer">
+            <div class="source-tags">
+              ${(item.source_urls || []).map(url => `
+                <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="source-link">
+                  🔗 ${getDomain(url)} (${escapeHtml(item.source_name || 'Source')})
+                </a>
+              `).join('')}
+            </div>
+            <div class="fingerprint-tag">Fingerprint: ${(item.topic_fingerprint || item.id).substring(0, 8)}</div>
           </div>
         </div>
       `).join('');
@@ -1070,6 +1176,7 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function applyFilters() {
       renderFeed();
+      renderQueue();
       renderRejections();
     }
 
@@ -1082,8 +1189,11 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function switchTab(tab) {
       document.getElementById('tab-feed').classList.toggle('active', tab === 'feed');
+      document.getElementById('tab-queue').classList.toggle('active', tab === 'queue');
       document.getElementById('tab-rejections').classList.toggle('active', tab === 'rejections');
+
       document.getElementById('feed-tab-content').style.display = tab === 'feed' ? 'block' : 'none';
+      document.getElementById('queue-tab-content').style.display = tab === 'queue' ? 'block' : 'none';
       document.getElementById('rejections-tab-content').style.display = tab === 'rejections' ? 'block' : 'none';
     }
 
@@ -1115,9 +1225,10 @@ INDEX_HTML = """<!DOCTYPE html>
 
     setInterval(() => {
       loadFeed();
+      loadQueue();
       loadRejections();
       loadStatus();
-    }, 5000);
+    }, 4000);
 
     setInterval(updateCountdown, 1000);
 
@@ -1221,6 +1332,12 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="Unknown agent")
         return {"rejections": database.list_rejections(agent_id)}
 
+    @application.get("/api/agent/queue")
+    def get_queue(agent_id: str | None = Query(default=None, alias="agentId")) -> dict[str, object]:
+        target_id = agent_id or autonomous_loop.active_agent_id or database.get_latest_agent_id()
+        if not target_id or not database.agent_exists(target_id):
+            return {"queue": [], "count": 0}
+        return {"queue": database.list_queued_topics(target_id), "count": database.queued_count(target_id)}
 
     @application.post("/api/agent/clear-rejections")
     def clear_rejections(agent_id: str | None = Query(default=None, alias="agentId")) -> dict[str, str]:

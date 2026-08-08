@@ -167,6 +167,34 @@ class Database:
             row = connection.execute("SELECT COUNT(*) FROM queued_posts WHERE agent_id = ?", (agent_id,)).fetchone()
             return row[0] if row else 0
 
+    def list_queued_topics(self, agent_id: str) -> list[dict[str, object]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT id, queued_at, title, summary, source_name, source_urls, topic_fingerprint, decision_reason FROM queued_posts WHERE agent_id = ? ORDER BY queued_at ASC",
+                (agent_id,),
+            ).fetchall()
+        result = []
+        for row in rows:
+            urls = row["source_urls"]
+            if isinstance(urls, str):
+                try:
+                    urls = json.loads(urls)
+                except Exception:
+                    urls = [urls] if urls else []
+            result.append(
+                {
+                    "id": row["id"],
+                    "queued_at": row["queued_at"],
+                    "title": row["title"],
+                    "summary": row["summary"],
+                    "source_name": row["source_name"],
+                    "source_urls": urls,
+                    "topic_fingerprint": row["topic_fingerprint"],
+                    "decision_reason": row["decision_reason"],
+                }
+            )
+        return result
+
     def record_post(self, agent_id: str, post_id: str, created_at: str, text: str, rationale: str, sources: list[str], topic_fingerprint: str) -> None:
         with self.connect() as connection:
             connection.execute(
