@@ -21,6 +21,8 @@ def _clean_json_text(text: str) -> str:
     return cleaned.strip()
 
 
+import html
+
 class GeminiClient:
     def __init__(self, api_key: str | None) -> None:
         self.api_key = api_key
@@ -76,7 +78,7 @@ class GeminiClient:
     def _heuristic_write_post(self, candidate_summary: str, decision_reason: str, chosen_over: str) -> tuple[str, str]:
         title_match = re.search(r"Title:\s*(.*?)(?:\n|$)", candidate_summary)
         raw_title = title_match.group(1).strip() if title_match else "AI Security Research Update"
-        clean_title = re.sub(r"^(Title:\s*|The Download:\s*|\s*)", "", raw_title, flags=re.IGNORECASE)
+        clean_title = html.unescape(re.sub(r"^(Title:\s*|The Download:\s*|\s*)", "", raw_title, flags=re.IGNORECASE))
 
         lower = candidate_summary.lower()
         tags = ["#AISecurity", "#VectorAnalysis"]
@@ -94,19 +96,25 @@ class GeminiClient:
 
         text = (
             f"🚨 {clean_title}\n\n"
-            f"Vector's Take: Technical evaluation of recent research and threat reports. "
-            f"Skeptical of headline hype—the critical focus must remain on verified attack vectors.\n\n"
-            f"⚡ Attack Surface Analysis:\n"
+            f"Vector's Technical Analysis:\n"
+            f"Recent security dispatches and research disclosures highlight critical vulnerabilities in modern AI systems. "
+            f"While general headlines focus on hype or corporate announcements, our primary analysis remains focused strictly on attack surface exposures and verified system impact.\n\n"
+            f"🔍 Threat Context & Primary Impact:\n"
             f"• {decision_reason}\n"
-            f"• Direct risk to model alignment and downstream AI execution sandboxes.\n\n"
+            f"• Analysis indicates execution risks where model outputs interface directly with untrusted data inputs.\n"
+            f"• Exploitation vectors can lead to context poisoning, data exfiltration, or boundary escalation in connected AI agents.\n\n"
+            f"⚡ Attack Surface & Recommended Defense:\n"
+            f"• Enforce strict privilege separation between agent reasoning modules and downstream OS/API execution.\n"
+            f"• Implement deterministic schema validation and sanitization on all LLM tool calls before invocation.\n"
+            f"• Audit prompt boundaries and establish isolated sandboxes for external data ingestion.\n\n"
             f"🏷️ {tag_str}"
         )
 
-        rejected_snippet = chosen_over[:250] + "..." if len(chosen_over) > 250 else chosen_over
+        rejected_snippet = chosen_over[:300] + "..." if len(chosen_over) > 300 else chosen_over
         rationale = (
-            f"Selected '{clean_title}' due to direct technical security implications. "
-            f"Why relevant now: Addresses active attack surface risks in modern AI systems.\n"
-            f"Comparative Choice over rejected topics this cycle:\n{rejected_snippet}"
+            f"Selected '{clean_title}' due to direct, actionable technical security implications.\n\n"
+            f"Why relevant now: Addresses immediate attack surface vulnerabilities in production AI agent architectures.\n\n"
+            f"Comparative Choice over rejected topics from this cycle:\n{rejected_snippet}"
         )
         return text, rationale
 
@@ -136,13 +144,14 @@ class GeminiClient:
 
         prompt = (
             f"{PERSONA_SYSTEM_PROMPT}\n\n"
-            "Write a concise, high-quality post in Vector's voice (skeptical of hype, cites primary sources, short punchy sentences, always asks 'what's the attack surface here') "
-            "and a detailed editorial rationale.\n\n"
+            "Write a detailed, multi-paragraph, high-quality technical security post in Vector's voice "
+            "(skeptical of hype, cites primary sources, punchy analytical sentences, always asks 'what's the attack surface here').\n\n"
             "Formatting Rules for post 'text':\n"
-            "1. Start with a clean title emoji & headline (e.g., 🚨 Title Here).\n"
-            "2. Provide 2-3 short analytical sentences in Vector's voice.\n"
-            "3. Include a '⚡ Attack Surface:' section with 1-2 concise bullet points detailing security implications.\n"
-            "4. Include a '🏷️ Hashtags:' line with 3-4 relevant tags (e.g., #AISecurity #AttackSurface #AIResearch).\n\n"
+            "1. Start with a clean headline emoji & unescaped title (e.g. 🚨 Title Here).\n"
+            "2. Provide 2-3 analytical introductory paragraphs detailing technical context.\n"
+            "3. Include a '🔍 Threat Context & Primary Impact:' section with 2-3 detailed bullet points.\n"
+            "4. Include a '⚡ Attack Surface & Recommended Defense:' section with 3 actionable bullet points.\n"
+            "5. Include a '🏷️ Hashtags:' line with 3-4 relevant tags (e.g. #AISecurity #AttackSurface #AIResearch).\n\n"
             "Formatting Rules for 'rationale':\n"
             "1. Explain why this topic was selected and why it is relevant right now.\n"
             "2. Explicitly compare it against the rejected candidates from this cycle.\n\n"
@@ -150,7 +159,7 @@ class GeminiClient:
             f"Selection Reason:\n{decision_reason}\n\n"
             f"Rejected Candidates This Cycle:\n{chosen_over}\n\n"
             "Return valid JSON strictly matching:\n"
-            '{"text": "Post text formatted with sections and hashtags", "rationale": "Detailed rationale explaining why selected, why relevant now, and comparison with rejected topics"}'
+            '{"text": "Detailed post text formatted with sections and hashtags", "rationale": "Detailed rationale explaining why selected, why relevant now, and comparison with rejected topics"}'
         )
         try:
             data = self._generate_json(prompt)
@@ -163,4 +172,5 @@ class GeminiClient:
             return post_text, rationale_text
         except Exception:
             return self._heuristic_write_post(candidate_summary, decision_reason, chosen_over)
+
 

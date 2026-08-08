@@ -20,11 +20,23 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE TABLE IF NOT EXISTS rejected_topics (
   id TEXT PRIMARY KEY,
-    agent_id TEXT,
+  agent_id TEXT,
   seen_at TEXT,
   topic_summary TEXT,
-    reject_reason TEXT,
-    topic_fingerprint TEXT
+  reject_reason TEXT,
+  topic_fingerprint TEXT
+);
+
+CREATE TABLE IF NOT EXISTS queued_posts (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT,
+  queued_at TEXT,
+  title TEXT,
+  summary TEXT,
+  source_name TEXT,
+  source_urls TEXT,
+  topic_fingerprint TEXT,
+  decision_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS agent (
@@ -106,6 +118,54 @@ class Database:
                 (agent_id, cutoff),
             ).fetchall()
         return {row["topic_fingerprint"] for row in rows}
+
+    def recent_queued_fingerprints(self, agent_id: str) -> set[str]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT topic_fingerprint FROM queued_posts WHERE agent_id = ? AND topic_fingerprint IS NOT NULL",
+                (agent_id,),
+            ).fetchall()
+        return {row["topic_fingerprint"] for row in rows}
+
+    def enqueue_topic(self, agent_id: str, queue_id: str, queued_at: str, title: str, summary: str, source_name: str, source_urls: list[str], topic_fingerprint: str, decision_reason: str) -> None:
+        with self.connect() as connection:
+            connection.execute(
+                "INSERT INTO queued_posts(id, agent_id, queued_at, title, summary, source_name, source_urls, topic_fingerprint, decision_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (queue_id, agent_id, queued_at, title, summary, source_name, json.dumps(source_urls), topic_fingerprint, decision_reason),
+            )
+
+    def pop_queued_topic(self, agent_id: str) -> dict[str, object] | None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT id, queued_at, title, summary, source_name, source_urls, topic_fingerprint, decision_reason FROM queued_posts WHERE agent_id = ? ORDER BY queued_at ASC LIMIT 1",
+                (agent_id,),
+            ).fetchone()
+            if not row:
+                return None
+            
+            queue_id = row["id"]
+            connection.execute("DELETE FROM queued_posts WHERE id = ?", (queue_id,))
+            
+            urls = row["source_urls"]
+            if isinstance(urls, str):
+                try:
+                    urls = json.loads(urls)
+                except Exception:
+                    urls = [urls] if urls else []
+            return {
+                "id": row["id"],
+                "title": row["title"],
+                "summary": row["summary"],
+                "source_name": row["source_name"],
+                "source_urls": urls,
+                "topic_fingerprint": row["topic_fingerprint"],
+                "decision_reason": row["decision_reason"],
+            }
+
+    def queued_count(self, agent_id: str) -> int:
+        with self.connect() as connection:
+            row = connection.execute("SELECT COUNT(*) FROM queued_posts WHERE agent_id = ?", (agent_id,)).fetchone()
+            return row[0] if row else 0
 
     def record_post(self, agent_id: str, post_id: str, created_at: str, text: str, rationale: str, sources: list[str], topic_fingerprint: str) -> None:
         with self.connect() as connection:

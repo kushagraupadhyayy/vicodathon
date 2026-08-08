@@ -109,55 +109,78 @@ class AutonomousLoop:
         self.last_tick_time = now_str
 
         try:
-            raw_candidates = discover_candidates(self.newsapi_key)
-            candidates = self._cheap_filter(raw_candidates)
-            print(f"[autonomous-loop] Discovered {len(raw_candidates)} total candidates, {len(candidates)} passed cheap filter.")
+            # 1. Fill queue if queue count is below 2
+            current_q_count = self.database.queued_count(self.active_agent_id)
+            if current_q_count < 2:
+                raw_candidates = discover_candidates(self.newsapi_key)
+                candidates = self._cheap_filter(raw_candidates)
+                print(f"[autonomous-loop] Queue low ({current_q_count}). Discovered {len(raw_candidates)} candidates, {len(candidates)} passed cheap filter.")
 
-            recent_context = self._recent_context()
-            recent_fingerprints = self.database.recent_fingerprints(self.active_agent_id)
-            recent_rejected_fingerprints = self.database.recent_rejected_fingerprints(self.active_agent_id)
-            blocked_fingerprints = recent_fingerprints | recent_rejected_fingerprints
+                recent_context = self._recent_context()
+                recent_fingerprints = self.database.recent_fingerprints(self.active_agent_id)
+                recent_rejected_fingerprints = self.database.recent_rejected_fingerprints(self.active_agent_id)
+                recent_queued_fingerprints = self.database.recent_queued_fingerprints(self.active_agent_id)
+                blocked_fingerprints = recent_fingerprints | recent_rejected_fingerprints | recent_queued_fingerprints
 
-            rejected: list[tuple[CandidateTopic, str]] = []
-            approved: list[tuple[CandidateTopic, str]] = []
+                for candidate in candidates:
+                    if candidate.fingerprint in blocked_fingerprints:
+                        continue
 
-            for candidate in candidates:
-                if candidate.fingerprint in blocked_fingerprints:
-                    rejected.append((candidate, "Already processed or rejected recently"))
-                    continue
+                    decision = self.gemini_client.judge(self._candidate_summary(candidate), recent_context)
+                    if not decision.publish:
+                        self._record_rejection(candidate, decision.reason)
+                        blocked_fingerprints.add(candidate.fingerprint)
+                        continue
 
-                decision = self.gemini_client.judge(self._candidate_summary(candidate), recent_context)
-                if not decision.publish:
-                    rejected.append((candidate, decision.reason))
-                    self._record_rejection(candidate, decision.reason)
+                    # Queue approved topic for publication
+                    self.database.enqueue_topic(
+                        agent_id=self.active_agent_id,
+                        queue_id=str(uuid.uuid4()),
+                        queued_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        title=candidate.title,
+                        summary=candidate.summary,
+                        source_name=candidate.source_name,
+                        source_urls=candidate.source_urls,
+                        topic_fingerprint=candidate.fingerprint,
+                        decision_reason=decision.reason,
+                    )
                     blocked_fingerprints.add(candidate.fingerprint)
-                    continue
 
-                approved.append((candidate, decision.reason))
-                blocked_fingerprints.add(candidate.fingerprint)
-
-            rejected_rollup = self._rejected_rollup(rejected)
-
-            published_count = 0
-            if approved:
-                # Publish the single best candidate topic per tick for steady rhythm
-                candidate, decision_reason = approved[0]
+            # 2. Pop 1 topic from queue and publish it on this tick
+            queued_item = self.database.pop_queued_topic(self.active_agent_id)
+            if queued_item:
+                candidate_summary = f"Title: {queued_item['title']}\nSummary: {queued_item['summary']}\nSource: {queued_item['source_name']}\nURLs: {', '.join(queued_item['source_urls'])}"
+                
+                candidate = CandidateTopic(
+                    title=str(queued_item["title"]),
+                    summary=str(queued_item["summary"]),
+                    source_name=str(queued_item["source_name"]),
+                    source_urls=list(queued_item["source_urls"]),
+                )
+                
+                rejected_context = self._recent_rejected_summary()
                 text, rationale = self.gemini_client.write_post(
-                    self._candidate_summary(candidate), decision_reason, rejected_rollup
+                    candidate_summary, str(queued_item["decision_reason"]), rejected_context
                 )
                 self._store_post(candidate, text, rationale)
-                published_count = 1
-                print(f"[autonomous-loop] Published post for candidate: '{candidate.title}'")
-
-                # Record remaining approved topics as deferred to prevent spamming multiple posts in 1 tick
-                for candidate, decision_reason in approved[1:]:
-                    self._record_rejection(candidate, "Deferred: Only 1 primary post published per autonomous tick cycle.")
-
-            self.last_tick_status = f"Success: {published_count} published, {len(rejected) + max(0, len(approved) - 1)} rejected/deferred ({len(raw_candidates)} scanned)."
+                remaining_q = self.database.queued_count(self.active_agent_id)
+                self.last_tick_status = f"Success: Published 1 post from queue ({remaining_q} remaining in queue)."
+                print(f"[autonomous-loop] Published queued post: '{candidate.title}' ({remaining_q} remaining in queue)")
+            else:
+                self.last_tick_status = "Idle: No approved topics in queue."
 
         except Exception as err:
             self.last_tick_status = f"Error: {err}"
             logger.error("Error in autonomous tick: %s", err, exc_info=True)
+
+    def _recent_rejected_summary(self) -> str:
+        if not self.active_agent_id:
+            return "None rejected recently."
+        recent_rejections = self.database.recent_context(self.active_agent_id)
+        if not recent_rejections:
+            return "None rejected recently."
+        return "\n".join(f"- {item['topicSummary']}: {item['rejectReason']}" for item in recent_rejections[:10])
+
 
 
     def _cheap_filter(self, candidates: list[CandidateTopic]) -> list[CandidateTopic]:
