@@ -37,7 +37,13 @@ class GeminiClient:
         if not self._client:
             raise RuntimeError("Gemini client not initialized")
         
-        models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+        models_to_try = [
+            "gemini-2.0-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
+        ]
         last_err = None
         for model in models_to_try:
             try:
@@ -53,20 +59,60 @@ class GeminiClient:
                 continue
         raise last_err or RuntimeError("Failed to generate content with Gemini models")
 
+    def _heuristic_judge(self, candidate_summary: str) -> EditorialDecision:
+        lower = candidate_summary.lower()
+        security_keywords = ("security", "vulnerability", "attack", "exploit", "injection", "jailbreak", "adversarial", "sandbox", "risk", "threat", "cve")
+        hype_keywords = ("valuation", "funding", "hiring", "raised", "sponsor", "stock", "market cap")
+        has_sec = any(k in lower for k in security_keywords)
+        has_hype = any(k in lower for k in hype_keywords)
+        publish = has_sec and not has_hype
+        reason = (
+            "Approved: technical security focus clearing Vector's standards."
+            if publish
+            else "Rejected: generic hype, non-security topic, or marketing."
+        )
+        return EditorialDecision(publish=publish, reason=reason)
+
+    def _heuristic_write_post(self, candidate_summary: str, decision_reason: str, chosen_over: str) -> tuple[str, str]:
+        title_match = re.search(r"Title:\s*(.*?)(?:\n|$)", candidate_summary)
+        raw_title = title_match.group(1).strip() if title_match else "AI Security Research Update"
+        clean_title = re.sub(r"^(Title:\s*|The Download:\s*|\s*)", "", raw_title, flags=re.IGNORECASE)
+
+        lower = candidate_summary.lower()
+        tags = ["#AISecurity", "#VectorAnalysis"]
+        if "exploit" in lower or "attack" in lower or "cyber" in lower:
+            tags.append("#AttackSurface")
+        if "vulnerability" in lower or "sandbox" in lower:
+            tags.append("#ModelSecurity")
+        if "injection" in lower or "jailbreak" in lower:
+            tags.append("#PromptInjection")
+        if "paper" in lower or "arxiv" in lower:
+            tags.append("#AIResearch")
+        if "reward" in lower or "hacking" in lower or "rlhf" in lower:
+            tags.append("#RLHF")
+        tag_str = " ".join(tags)
+
+        text = (
+            f"🚨 {clean_title}\n\n"
+            f"Vector's Take: Technical evaluation of recent research and threat reports. "
+            f"Skeptical of headline hype—the critical focus must remain on verified attack vectors.\n\n"
+            f"⚡ Attack Surface Analysis:\n"
+            f"• {decision_reason}\n"
+            f"• Direct risk to model alignment and downstream AI execution sandboxes.\n\n"
+            f"🏷️ {tag_str}"
+        )
+
+        rejected_snippet = chosen_over[:250] + "..." if len(chosen_over) > 250 else chosen_over
+        rationale = (
+            f"Selected '{clean_title}' due to direct technical security implications. "
+            f"Why relevant now: Addresses active attack surface risks in modern AI systems.\n"
+            f"Comparative Choice over rejected topics this cycle:\n{rejected_snippet}"
+        )
+        return text, rationale
+
     def judge(self, candidate_summary: str, recent_context: str) -> EditorialDecision:
         if self._client is None:
-            lower = candidate_summary.lower()
-            security_keywords = ("security", "vulnerability", "attack", "exploit", "injection", "jailbreak", "adversarial", "sandbox")
-            hype_keywords = ("valuation", "funding", "hiring", "raised", "sponsor")
-            has_sec = any(k in lower for k in security_keywords)
-            has_hype = any(k in lower for k in hype_keywords)
-            publish = has_sec and not has_hype
-            reason = (
-                "Approved: technical security focus clearing Vector's standards."
-                if publish
-                else "Rejected: generic hype, non-security topic, or marketing."
-            )
-            return EditorialDecision(publish=publish, reason=reason)
+            return self._heuristic_judge(candidate_summary)
 
         prompt = (
             f"{PERSONA_SYSTEM_PROMPT}\n\n"
@@ -81,46 +127,12 @@ class GeminiClient:
         try:
             data = self._generate_json(prompt)
             return EditorialDecision(publish=bool(data.get("publish")), reason=str(data.get("reason", "No reason provided")))
-        except Exception as err:
-            return EditorialDecision(publish=False, reason=f"Rejected due to evaluation error: {err}")
+        except Exception:
+            return self._heuristic_judge(candidate_summary)
 
     def write_post(self, candidate_summary: str, decision_reason: str, chosen_over: str) -> tuple[str, str]:
         if self._client is None:
-            title_match = re.search(r"Title:\s*(.*?)(?:\n|$)", candidate_summary)
-            raw_title = title_match.group(1).strip() if title_match else "AI Security Research Update"
-            clean_title = re.sub(r"^(Title:\s*|The Download:\s*|\s*)", "", raw_title, flags=re.IGNORECASE)
-
-            lower = candidate_summary.lower()
-            tags = ["#AISecurity", "#VectorAnalysis"]
-            if "exploit" in lower or "attack" in lower or "cyber" in lower:
-                tags.append("#AttackSurface")
-            if "vulnerability" in lower or "sandbox" in lower:
-                tags.append("#ModelSecurity")
-            if "injection" in lower or "jailbreak" in lower:
-                tags.append("#PromptInjection")
-            if "paper" in lower or "arxiv" in lower:
-                tags.append("#AIResearch")
-            if "reward" in lower or "hacking" in lower or "rlhf" in lower:
-                tags.append("#RLHF")
-            tag_str = " ".join(tags)
-
-            text = (
-                f"🚨 {clean_title}\n\n"
-                f"Vector's Take: Technical evaluation of recent research and threat reports. "
-                f"Skeptical of headline hype—the critical focus must remain on verified attack vectors.\n\n"
-                f"⚡ Attack Surface Analysis:\n"
-                f"• {decision_reason}\n"
-                f"• Direct risk to model alignment and downstream AI execution sandboxes.\n\n"
-                f"🏷️ {tag_str}"
-            )
-
-            rejected_snippet = chosen_over[:250] + "..." if len(chosen_over) > 250 else chosen_over
-            rationale = (
-                f"Selected '{clean_title}' due to direct technical security implications. "
-                f"Why relevant now: Addresses active attack surface risks in modern AI systems.\n"
-                f"Comparative Choice over rejected topics this cycle:\n{rejected_snippet}"
-            )
-            return text, rationale
+            return self._heuristic_write_post(candidate_summary, decision_reason, chosen_over)
 
         prompt = (
             f"{PERSONA_SYSTEM_PROMPT}\n\n"
@@ -145,11 +157,10 @@ class GeminiClient:
             post_text = str(data.get("text", "")).strip()
             rationale_text = str(data.get("rationale", "")).strip()
             if not post_text:
-                post_text = f"Security Analysis: {candidate_summary[:150]}"
+                post_text, rationale_text = self._heuristic_write_post(candidate_summary, decision_reason, chosen_over)
             if not rationale_text:
                 rationale_text = f"Selected for security relevance: {decision_reason}"
             return post_text, rationale_text
         except Exception:
-            text = f"Security update: {candidate_summary[:120]}... Attack surface under evaluation. #AISecurity #VectorAnalysis"
-            rationale = f"Selected topic for security relevance. Why chosen over others: {chosen_over}"
-            return text, rationale
+            return self._heuristic_write_post(candidate_summary, decision_reason, chosen_over)
+
