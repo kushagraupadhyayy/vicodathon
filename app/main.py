@@ -716,10 +716,24 @@ INDEX_HTML = """<!DOCTYPE html>
       if (savedInterval) {
         document.getElementById('interval-select').value = savedInterval;
       }
+      try {
+        const url = '/api/agent/status' + (currentAgentId ? '?agentId=' + currentAgentId : '');
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.active_agent_id) {
+            currentAgentId = data.active_agent_id;
+            localStorage.setItem('vicodathon_agent_id', currentAgentId);
+            document.getElementById('agent-id-display').textContent = currentAgentId.substring(0, 18) + '...';
+          }
+        } else if (res.status === 404) {
+          currentAgentId = null;
+        }
+      } catch (e) {}
+
       if (!currentAgentId) {
         await initNewAgent();
       } else {
-        document.getElementById('agent-id-display').textContent = currentAgentId.substring(0, 18) + '...';
         await loadFeed();
         await loadRejections();
         await loadStatus();
@@ -832,6 +846,11 @@ INDEX_HTML = """<!DOCTYPE html>
       if (!currentAgentId) return;
       try {
         const res = await fetch('/api/agent/feed?agentId=' + currentAgentId);
+        if (res.status === 404) {
+          console.warn('Agent ID not found on server, initializing new agent...');
+          await initNewAgent();
+          return;
+        }
         if (!res.ok) return;
         const data = await res.json();
         cachedPosts = data.posts || [];
@@ -847,6 +866,9 @@ INDEX_HTML = """<!DOCTYPE html>
       if (!currentAgentId) return;
       try {
         const res = await fetch('/api/agent/rejections?agentId=' + currentAgentId);
+        if (res.status === 404) {
+          return;
+        }
         if (!res.ok) return;
         const data = await res.json();
         cachedRejections = data.rejections || [];
@@ -1093,6 +1115,7 @@ def create_app() -> FastAPI:
         if not agent_id or not database.agent_exists(agent_id):
             raise HTTPException(status_code=404, detail="Unknown agent")
         return {"rejections": database.list_rejections(agent_id)}
+
 
     @application.post("/api/agent/clear-rejections")
     def clear_rejections(agent_id: str | None = Query(default=None, alias="agentId")) -> dict[str, str]:
