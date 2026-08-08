@@ -56,8 +56,13 @@ class Database:
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
-        connection = sqlite3.connect(self.db_path)
+        connection = sqlite3.connect(self.db_path, timeout=30.0)
         connection.row_factory = sqlite3.Row
+        try:
+            connection.execute("PRAGMA journal_mode=WAL;")
+            connection.execute("PRAGMA synchronous=NORMAL;")
+        except Exception:
+            pass
         try:
             yield connection
             connection.commit()
