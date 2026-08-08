@@ -746,8 +746,17 @@ INDEX_HTML = """<!DOCTYPE html>
         const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.tick_minutes) {
-          document.getElementById('interval-select').value = data.tick_minutes;
+        if (data.tick_minutes !== undefined && data.tick_minutes !== null) {
+          const valStr = String(data.tick_minutes);
+          const select = document.getElementById('interval-select');
+          if (select) {
+            for (let opt of select.options) {
+              if (Math.abs(parseFloat(opt.value) - parseFloat(valStr)) < 0.01) {
+                select.value = opt.value;
+                break;
+              }
+            }
+          }
         }
         if (data.last_tick_time) {
           document.getElementById('last-time-text').textContent = 'Last tick: ' + formatDate(data.last_tick_time);

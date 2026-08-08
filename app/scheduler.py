@@ -61,14 +61,16 @@ class AutonomousLoop:
     def start(self, agent_id: str) -> None:
         self.active_agent_id = agent_id
         self.ensure_started()
-        self.scheduler.add_job(
-            self.tick,
-            "interval",
-            minutes=self.tick_minutes,
-            next_run_time=datetime.now(timezone.utc),
-            id="autonomous-loop",
-            replace_existing=True,
-        )
+        if not self.scheduler.get_job("autonomous-loop"):
+            seconds = max(1, int(self.tick_minutes * 60))
+            self.scheduler.add_job(
+                self.tick,
+                "interval",
+                seconds=seconds,
+                next_run_time=datetime.now(timezone.utc) + timedelta(seconds=seconds),
+                id="autonomous-loop",
+                replace_existing=True,
+            )
 
     def ensure_started(self) -> None:
         if not self.scheduler.running:
@@ -92,7 +94,7 @@ class AutonomousLoop:
                 self.tick,
                 "interval",
                 seconds=seconds,
-                next_run_time=datetime.now(timezone.utc),
+                next_run_time=datetime.now(timezone.utc) + timedelta(seconds=seconds),
                 id="autonomous-loop",
                 replace_existing=True,
             )
@@ -136,14 +138,22 @@ class AutonomousLoop:
 
             rejected_rollup = self._rejected_rollup(rejected)
 
-            for candidate, decision_reason in approved:
+            published_count = 0
+            if approved:
+                # Publish the single best candidate topic per tick for steady rhythm
+                candidate, decision_reason = approved[0]
                 text, rationale = self.gemini_client.write_post(
                     self._candidate_summary(candidate), decision_reason, rejected_rollup
                 )
                 self._store_post(candidate, text, rationale)
+                published_count = 1
                 print(f"[autonomous-loop] Published post for candidate: '{candidate.title}'")
 
-            self.last_tick_status = f"Success: {len(approved)} published, {len(rejected)} rejected ({len(raw_candidates)} scanned)."
+                # Record remaining approved topics as deferred to prevent spamming multiple posts in 1 tick
+                for candidate, decision_reason in approved[1:]:
+                    self._record_rejection(candidate, "Deferred: Only 1 primary post published per autonomous tick cycle.")
+
+            self.last_tick_status = f"Success: {published_count} published, {len(rejected) + max(0, len(approved) - 1)} rejected/deferred ({len(raw_candidates)} scanned)."
 
         except Exception as err:
             self.last_tick_status = f"Error: {err}"
