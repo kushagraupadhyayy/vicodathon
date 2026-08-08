@@ -54,3 +54,20 @@ def test_feed_unknown_agent_returns_404() -> None:
         finally:
             main.database = original_database
             main.autonomous_loop = original_loop
+
+
+def test_feed_missing_agent_id_returns_404() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "vicodathon.db"
+        original_database = main.database
+        original_loop = main.autonomous_loop
+        try:
+            main.database = Database(db_path)
+            main.autonomous_loop = DummyLoop()
+            client = TestClient(main.app)
+
+            response = client.get("/api/feed")
+            assert response.status_code == 404
+        finally:
+            main.database = original_database
+            main.autonomous_loop = original_loop

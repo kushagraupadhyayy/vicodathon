@@ -43,7 +43,9 @@ def create_app() -> FastAPI:
         return {"agentId": agent_id}
 
     @application.get("/api/feed")
-    def get_feed(agent_id: str = Query(..., alias="agentId")) -> dict[str, list[dict[str, object]]]:
+    def get_feed(agent_id: str | None = Query(default=None, alias="agentId")) -> dict[str, list[dict[str, object]]]:
+        if not agent_id:
+            raise HTTPException(status_code=404, detail="Unknown agent")
         if not database.agent_exists(agent_id):
             raise HTTPException(status_code=404, detail="Unknown agent")
 
