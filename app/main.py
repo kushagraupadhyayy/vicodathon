@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
     def startup() -> None:
         autonomous_loop.ensure_started()
 
-    @application.post("/api/agent/init")
+    @application.post("/api/init")
     def init_agent(payload: dict[str, object] | None = None) -> dict[str, str]:
         persona = (payload or {}).get("persona", {}) if payload else {}
         if not isinstance(persona, dict):
@@ -42,7 +42,7 @@ def create_app() -> FastAPI:
         autonomous_loop.start(agent_id)
         return {"agentId": agent_id}
 
-    @application.get("/api/agent/feed")
+    @application.get("/api/feed")
     def get_feed(agent_id: str = Query(..., alias="agentId")) -> dict[str, list[dict[str, object]]]:
         if not database.agent_exists(agent_id):
             raise HTTPException(status_code=404, detail="Unknown agent")

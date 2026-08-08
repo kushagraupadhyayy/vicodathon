@@ -27,11 +27,11 @@ def test_init_and_feed_round_trip() -> None:
             main.autonomous_loop = DummyLoop()
             client = TestClient(main.app)
 
-            init_response = client.post("/api/agent/init", json={"persona": {"name": "Vector", "domain": "AI Security Researcher"}})
+            init_response = client.post("/api/init", json={"persona": {"name": "Vector", "domain": "AI Security Researcher"}})
             assert init_response.status_code == 200
             agent_id = init_response.json()["agentId"]
 
-            feed_response = client.get("/api/agent/feed", params={"agentId": agent_id})
+            feed_response = client.get("/api/feed", params={"agentId": agent_id})
             assert feed_response.status_code == 200
             assert feed_response.json() == {"posts": []}
         finally:
@@ -49,7 +49,7 @@ def test_feed_unknown_agent_returns_404() -> None:
             main.autonomous_loop = DummyLoop()
             client = TestClient(main.app)
 
-            response = client.get("/api/agent/feed", params={"agentId": "missing"})
+            response = client.get("/api/feed", params={"agentId": "missing"})
             assert response.status_code == 404
         finally:
             main.database = original_database

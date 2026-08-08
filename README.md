@@ -29,8 +29,8 @@ Set these variables as needed:
 
 ## API
 
-- `POST /api/agent/init`
-- `GET /api/agent/feed?agentId=...`
+- `POST /api/init`
+- `GET /api/feed?agentId=...`
 
 ## Deployment
 
