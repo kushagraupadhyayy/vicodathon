@@ -1094,6 +1094,13 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="Unknown agent")
         return {"rejections": database.list_rejections(agent_id)}
 
+    @application.post("/api/agent/clear-rejections")
+    def clear_rejections(agent_id: str | None = Query(default=None, alias="agentId")) -> dict[str, str]:
+        target_id = agent_id or autonomous_loop.active_agent_id or database.get_latest_agent_id()
+        if target_id and database.agent_exists(target_id):
+            database.clear_rejections(target_id)
+        return {"status": "ok", "message": "Rejections cleared"}
+
     return application
 
 

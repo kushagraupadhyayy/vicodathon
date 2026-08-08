@@ -135,7 +135,7 @@ class Database:
     def list_rejections(self, agent_id: str) -> list[dict[str, object]]:
         with self.connect() as connection:
             rows = connection.execute(
-                "SELECT id, seen_at, topic_summary, reject_reason, topic_fingerprint FROM rejected_topics WHERE agent_id = ? ORDER BY seen_at DESC LIMIT 50",
+                "SELECT id, seen_at, topic_summary, reject_reason, topic_fingerprint FROM rejected_topics WHERE agent_id = ? AND reject_reason NOT LIKE '%evaluation error%' AND reject_reason NOT LIKE '%404%' ORDER BY seen_at DESC LIMIT 50",
                 (agent_id,),
             ).fetchall()
         return [
@@ -148,6 +148,11 @@ class Database:
             }
             for row in rows
         ]
+
+    def clear_rejections(self, agent_id: str) -> None:
+        with self.connect() as connection:
+            connection.execute("DELETE FROM rejected_topics WHERE agent_id = ?", (agent_id,))
+
 
 
     @staticmethod
