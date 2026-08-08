@@ -32,27 +32,29 @@ INDEX_HTML = """<!DOCTYPE html>
   <title>Vector // Autonomous AI Security Researcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #080c14;
-      --bg-card: rgba(15, 23, 42, 0.75);
-      --bg-card-hover: rgba(26, 36, 60, 0.85);
-      --border-color: rgba(99, 102, 241, 0.16);
-      --border-accent: rgba(6, 182, 212, 0.4);
+      --bg-dark: #040508;
+      --bg-card: rgba(10, 12, 18, 0.85);
+      --bg-card-hover: rgba(16, 19, 28, 0.95);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(6, 182, 212, 0.35);
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
       --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.25);
       --accent-violet: #8b5cf6;
       --accent-emerald: #10b981;
       --accent-rose: #f43f5e;
       --accent-amber: #f59e0b;
-      --radius-xl: 20px;
-      --radius-lg: 14px;
-      --radius-md: 10px;
-      --shadow-main: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-      --shadow-glow: 0 0 30px rgba(6, 182, 212, 0.12);
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --shadow-main: 0 20px 50px -10px rgba(0, 0, 0, 0.8);
+      --shadow-glow: 0 0 40px rgba(6, 182, 212, 0.15);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,9 +63,10 @@ INDEX_HTML = """<!DOCTYPE html>
       font-family: 'Inter', sans-serif;
       background: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 10% 10%, rgba(139, 92, 246, 0.12), transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.12), transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05), transparent 50%);
+        radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.12), transparent 60%),
+        radial-gradient(ellipse at 80% 60%, rgba(6, 182, 212, 0.08), transparent 50%),
+        radial-gradient(ellipse at 20% 90%, rgba(16, 185, 129, 0.06), transparent 50%);
+      background-attachment: fixed;
       color: var(--text-primary);
       min-height: 100vh;
       line-height: 1.6;
@@ -71,68 +74,68 @@ INDEX_HTML = """<!DOCTYPE html>
     }
 
     .container {
-      max-width: 1140px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 32px 24px;
+      padding: 36px 24px;
     }
 
-    /* Top Navigation Bar */
+    /* Header Nav */
     .nav-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
-      background: rgba(15, 23, 42, 0.8);
+      padding: 18px 28px;
+      background: rgba(8, 10, 15, 0.85);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
-      backdrop-filter: blur(16px);
+      backdrop-filter: blur(20px);
       margin-bottom: 32px;
       box-shadow: var(--shadow-main);
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 18px;
     }
 
     .brand-section {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
     }
 
     .brand-avatar {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #090d16, #141a29);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 800;
-      font-size: 22px;
-      color: #ffffff;
-      box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      overflow: hidden;
+    }
+
+    .brand-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .brand-title-group h1 {
       font-family: 'Outfit', sans-serif;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
-      letter-spacing: -0.3px;
-      background: linear-gradient(to right, #ffffff, #cbd5e1);
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 60%, #94A3B8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .brand-title-group p {
       font-size: 13px;
       color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .badge-status {
@@ -142,18 +145,20 @@ INDEX_HTML = """<!DOCTYPE html>
       background: rgba(16, 185, 129, 0.12);
       color: var(--accent-emerald);
       border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 2px 10px;
+      padding: 3px 12px;
       border-radius: 20px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .pulse-dot {
-      width: 6px;
-      height: 6px;
+      width: 7px;
+      height: 7px;
       background: var(--accent-emerald);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
       animation: pulse 1.8s infinite;
     }
 
@@ -174,71 +179,96 @@ INDEX_HTML = """<!DOCTYPE html>
       font-family: 'Inter', sans-serif;
       font-size: 13px;
       font-weight: 600;
-      padding: 9px 16px;
+      padding: 10px 18px;
       border-radius: var(--radius-md);
       border: 1px solid transparent;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       text-decoration: none;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent-violet), #6366f1);
-      color: white;
-      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+      background: linear-gradient(135deg, #090d16, #161c2e);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
     }
 
     .btn-primary:hover {
+      background: linear-gradient(135deg, #101625, #1e273e);
+      border-color: #38bdf8;
+      box-shadow: 0 6px 24px rgba(6, 182, 212, 0.3);
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(139, 92, 246, 0.5);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: white;
+      box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
+    }
+
+    .btn-accent:hover {
+      box-shadow: 0 6px 22px rgba(139, 92, 246, 0.5);
+      transform: translateY(-1px);
     }
 
     .btn-secondary {
-      background: rgba(30, 41, 59, 0.6);
+      background: rgba(18, 22, 32, 0.8);
       color: var(--text-primary);
-      border-color: var(--border-color);
+      border: 1px solid var(--border-color);
     }
 
     .btn-secondary:hover {
-      background: rgba(51, 65, 85, 0.8);
-      border-color: var(--accent-cyan);
+      background: rgba(28, 34, 48, 0.9);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* Summary Metrics Grid */
+    /* Metric Dashboard Grid */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
     }
 
     .metric-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: 18px 20px;
-      backdrop-filter: blur(12px);
+      padding: 22px 24px;
+      backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow-main);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     }
 
     .metric-card:hover {
-      border-color: var(--border-accent);
+      border-color: var(--border-glow);
       box-shadow: var(--shadow-glow);
+      transform: translateY(-2px);
     }
 
     .metric-label {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -246,132 +276,186 @@ INDEX_HTML = """<!DOCTYPE html>
 
     .metric-value {
       font-family: 'Outfit', sans-serif;
-      font-size: 26px;
-      font-weight: 700;
+      font-size: 30px;
+      font-weight: 800;
       color: var(--text-primary);
-    }
-
-    .metric-subtext {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-
-    .select-interval {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid var(--border-accent);
-      color: var(--accent-cyan);
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      outline: none;
-      width: 100%;
-      margin-top: 6px;
-    }
-
-    /* Filter & Search Bar */
-    .filter-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 12px 18px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .search-box {
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(9, 13, 22, 0.6);
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Countdown Section */
+    .countdown-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+      letter-spacing: -0.5px;
+    }
+
+    .select-custom {
+      appearance: none;
+      -webkit-appearance: none;
+      background: rgba(14, 18, 26, 0.9) url("data:image/svg+xml;utf8,<svg fill='%2338bdf8' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat right 12px center;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-md);
+      padding: 8px 36px 8px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      width: 100%;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .select-custom:hover, .select-custom:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    .select-custom option {
+      background: #090d16;
+      color: #f8fafc;
+      padding: 10px;
+    }
+
+    /* Search and Tag Filter Bar */
+    .filter-section {
+      background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 8px 14px;
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-main);
+    }
+
+    .search-box {
       flex: 1;
-      min-width: 250px;
+      min-width: 260px;
+      position: relative;
     }
 
     .search-box input {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 14px;
-      outline: none;
       width: 100%;
+      background: rgba(14, 18, 26, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px 10px 38px;
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
     }
 
-    .search-box input::placeholder { color: var(--text-muted); }
+    .search-box input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.2);
+    }
 
-    .tag-pills {
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .tag-group {
       display: flex;
-      align-items: center;
       gap: 8px;
       flex-wrap: wrap;
     }
 
     .tag-pill {
       font-size: 12px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 4px 12px;
+      font-weight: 600;
+      padding: 6px 14px;
       border-radius: 20px;
+      background: rgba(18, 24, 36, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      user-select: none;
     }
 
     .tag-pill:hover, .tag-pill.active {
-      color: var(--accent-cyan);
       background: rgba(6, 182, 212, 0.15);
-      border-color: rgba(6, 182, 212, 0.4);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
     }
 
     /* Tabs Header */
     .tabs-header {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 24px;
+      padding-bottom: 2px;
     }
 
     .tab-btn {
-      padding: 12px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      background: none;
+      background: transparent;
       border: none;
-      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 10px 18px;
       cursor: pointer;
-      transition: all 0.2s;
+      position: relative;
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-secondary);
     }
 
     .tab-btn.active {
-      color: var(--accent-cyan);
-      border-bottom-color: var(--accent-cyan);
+      color: var(--text-primary);
     }
 
-    .count-badge {
-      background: rgba(30, 41, 59, 0.8);
-      color: var(--text-secondary);
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+      border-radius: 3px;
+      box-shadow: 0 0 12px var(--accent-cyan);
+    }
+
+    .tab-count {
+      font-family: 'Fira Code', monospace;
       font-size: 11px;
-      font-weight: 700;
       padding: 2px 8px;
       border-radius: 12px;
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-secondary);
     }
 
-    .tab-btn.active .count-badge {
+    .tab-btn.active .tab-count {
       background: rgba(6, 182, 212, 0.2);
       color: var(--accent-cyan);
     }
@@ -389,31 +473,20 @@ INDEX_HTML = """<!DOCTYPE html>
       border-radius: var(--radius-lg);
       padding: 24px;
       backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-main);
       transition: all 0.25s ease;
       position: relative;
-      overflow: hidden;
-    }
-
-    .post-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-violet));
     }
 
     .post-card:hover {
-      border-color: var(--border-accent);
-      box-shadow: var(--shadow-main);
-      transform: translateY(-2px);
+      border-color: rgba(6, 182, 212, 0.3);
+      box-shadow: var(--shadow-glow);
     }
 
     .post-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 16px;
     }
 
@@ -423,23 +496,14 @@ INDEX_HTML = """<!DOCTYPE html>
       gap: 12px;
     }
 
-    .author-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+    .author-name {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 15px;
-      color: #fff;
-    }
-
-    .author-name {
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--text-primary);
+      gap: 6px;
     }
 
     .author-role {
@@ -452,44 +516,52 @@ INDEX_HTML = """<!DOCTYPE html>
       font-family: 'Fira Code', monospace;
       font-size: 12px;
       color: var(--text-muted);
+      background: rgba(14, 18, 26, 0.8);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
     }
 
     .post-body {
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.7;
       color: #e2e8f0;
-      margin-bottom: 18px;
       white-space: pre-wrap;
+      margin-bottom: 20px;
     }
 
-    /* Rationale Details Accordion */
+    /* Rationale Accordion */
     .rationale-details {
-      background: rgba(9, 13, 22, 0.6);
-      border: 1px solid rgba(139, 92, 246, 0.2);
+      background: rgba(6, 9, 14, 0.8);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 12px 16px;
-      margin-bottom: 16px;
+      overflow: hidden;
+      margin-bottom: 18px;
     }
 
     .rationale-details summary {
+      padding: 12px 16px;
       font-size: 13px;
       font-weight: 600;
       color: var(--accent-violet);
       cursor: pointer;
       outline: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      user-select: none;
+      transition: background 0.2s ease;
+    }
+
+    .rationale-details summary:hover {
+      background: rgba(139, 92, 246, 0.08);
     }
 
     .rationale-content {
+      padding: 16px;
       font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 10px;
-      white-space: pre-wrap;
       line-height: 1.6;
-      padding-top: 8px;
-      border-top: 1px dashed rgba(139, 92, 246, 0.2);
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border-color);
+      background: rgba(4, 6, 10, 0.6);
+      white-space: pre-wrap;
     }
 
     .post-footer {
@@ -497,9 +569,9 @@ INDEX_HTML = """<!DOCTYPE html>
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       padding-top: 14px;
-      border-top: 1px solid rgba(255,255,255,0.06);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .source-tags {
@@ -509,22 +581,22 @@ INDEX_HTML = """<!DOCTYPE html>
     }
 
     .source-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      text-decoration: none;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(30, 41, 59, 0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: var(--accent-cyan);
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.2s;
+      gap: 4px;
     }
 
     .source-link:hover {
-      background: rgba(6, 182, 212, 0.15);
+      background: rgba(6, 182, 212, 0.2);
       border-color: var(--accent-cyan);
     }
 
@@ -532,32 +604,44 @@ INDEX_HTML = """<!DOCTYPE html>
       font-family: 'Fira Code', monospace;
       font-size: 11px;
       color: var(--text-muted);
-      background: rgba(0,0,0,0.3);
-      padding: 3px 8px;
-      border-radius: 4px;
+    }
+
+    /* Rejections List */
+    .rejections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
     .rejection-card {
       background: var(--bg-card);
-      border: 1px solid rgba(244, 63, 94, 0.2);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 16px 20px;
-      margin-bottom: 12px;
-      transition: all 0.2s;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
     }
 
     .rejection-card:hover {
-      border-color: rgba(244, 63, 94, 0.4);
+      border-color: rgba(244, 63, 94, 0.3);
+    }
+
+    .rejection-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
     }
 
     .rejection-reason {
-      color: var(--accent-rose);
       font-size: 13px;
-      font-weight: 600;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      color: #fb7185;
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      display: inline-block;
+      margin-top: 6px;
     }
 
     .empty-state {
@@ -568,22 +652,21 @@ INDEX_HTML = """<!DOCTYPE html>
       border-radius: var(--radius-lg);
     }
 
-    .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
-    .empty-state p { color: var(--text-secondary); max-width: 450px; margin: 0 auto 20px auto; font-size: 14px; }
-
-    .copy-agent-btn {
-      background: rgba(6, 182, 212, 0.1);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      color: var(--accent-cyan);
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
+    .empty-state h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
     }
 
-    .copy-agent-btn:hover {
-      background: rgba(6, 182, 212, 0.25);
+    .empty-state p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .spinner {
@@ -593,114 +676,120 @@ INDEX_HTML = """<!DOCTYPE html>
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
+      display: inline-block;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Top Navigation Header -->
+    <!-- Top Nav -->
     <header class="nav-bar">
       <div class="brand-section">
-        <img src="/static/vector_icon.png" alt="Vector Logo" style="width:46px; height:46px; border-radius:12px; border:1px solid rgba(6,182,212,0.4); box-shadow:0 0 15px rgba(6,182,212,0.35); object-fit:cover;">
+        <div class="brand-avatar">
+          <img src="/static/vector_icon.png" alt="Vector Shield">
+        </div>
         <div class="brand-title-group">
           <h1>Vector AI <span class="badge-status"><span class="pulse-dot"></span> Online</span></h1>
           <p>Autonomous AI Security Researcher Persona</p>
         </div>
       </div>
       <div class="nav-actions">
-        <button class="btn btn-secondary" onclick="triggerTick()" id="run-tick-btn">
-          <span>⚡ Run Tick Now</span>
-        </button>
-        <button class="btn btn-primary" onclick="initNewAgent()" id="init-btn">
-          <span>🤖 New Agent ID</span>
-        </button>
-        <button class="btn btn-secondary" onclick="loadFeed()" id="refresh-btn">
-          <span>🔄 Refresh</span>
-        </button>
-        <a href="/docs" target="_blank" class="btn btn-secondary">
-          <span>📖 API Docs</span>
-        </a>
+        <button class="btn btn-primary" id="run-tick-btn" onclick="triggerTick()">⚡ Run Tick Now</button>
+        <button class="btn btn-accent" id="init-btn" onclick="initNewAgent()">🤖 New Agent ID</button>
+        <button class="btn btn-secondary" onclick="clearRejections()">🧹 Clear History</button>
+        <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh</button>
+        <a href="/docs" target="_blank" class="btn btn-secondary">📖 API Docs</a>
       </div>
     </header>
 
-    <!-- Summary Metrics Cards -->
-    <div class="metrics-grid">
+    <!-- Metrics Grid -->
+    <section class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-label">Active Agent ID</div>
-        <div class="metric-value" style="font-size:14px; font-family:'Fira Code', monospace; color: var(--accent-cyan); display:flex; align-items:center; justify-content:space-between;">
-          <span id="agent-id-display" style="overflow:hidden; text-overflow:ellipsis;">Loading...</span>
-          <button class="copy-agent-btn" onclick="copyAgentId()" title="Copy Agent ID">📋 Copy</button>
+        <div class="metric-label">
+          <span>Active Agent ID</span>
+          <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="copyAgentId()">📋 Copy</button>
         </div>
-        <div class="metric-subtext">SQLite Memory Session</div>
+        <div class="metric-value" id="agent-id-display" style="font-size:16px; font-family:'Fira Code', monospace; color:var(--accent-cyan);">
+          Loading...
+        </div>
+        <div class="metric-sub">SQLite Memory Session</div>
       </div>
 
       <div class="metric-card">
         <div class="metric-label">Published Feed</div>
         <div class="metric-value" id="metric-posts-count">0</div>
-        <div class="metric-subtext">Security analysis posts</div>
+        <div class="metric-sub">Security analysis posts</div>
       </div>
 
       <div class="metric-card">
         <div class="metric-label">Editorial Rejections</div>
         <div class="metric-value" id="metric-rejections-count">0</div>
-        <div class="metric-subtext">Hype & duplicate topics filtered</div>
+        <div class="metric-sub">Hype & duplicate topics filtered</div>
       </div>
 
       <div class="metric-card">
         <div class="metric-label">
           <span>Next Post In</span>
-          <span id="countdown-timer" style="font-family:'Fira Code', monospace; color:var(--accent-cyan); font-weight:700;">--:--</span>
+          <span id="last-time-text" style="font-size:10px; font-weight:400; text-transform:none; color:var(--text-muted);">Syncing...</span>
         </div>
-        <select id="interval-select" class="select-interval" onchange="updateInterval(this.value)">
+        <div class="countdown-display" id="countdown-timer">--:--</div>
+        <select class="select-custom" id="interval-select" onchange="updateInterval(this.value)">
           <option value="0.5">⚡ Every 30 Seconds (Testing)</option>
-          <option value="5">Every 5 Minutes</option>
-          <option value="15">Every 15 Minutes</option>
-          <option value="30">Every 30 Minutes</option>
-          <option value="45" selected>Every 45 Minutes</option>
-          <option value="60">Every 60 Minutes (1h)</option>
-          <option value="120">Every 120 Minutes (2h)</option>
+          <option value="2">⚡ Every 2 Minutes</option>
+          <option value="5">⚡ Every 5 Minutes</option>
+          <option value="45">⚙️ Every 45 Minutes (Production)</option>
         </select>
-        <div class="metric-subtext" id="last-time-text">Last tick: --</div>
       </div>
-    </div>
+    </section>
 
-    <!-- Search & Topic Filter Controls -->
-    <div class="filter-bar">
+    <!-- Search & Filter Bar -->
+    <section class="filter-section">
       <div class="search-box">
-        <span>🔍</span>
+        <span class="search-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Search posts or rejections by title, keyword, domain..." oninput="applyFilters()">
       </div>
-      <div class="tag-pills">
-        <span class="tag-pill active" onclick="filterByTag('all', this)">All Topics</span>
-        <span class="tag-pill" onclick="filterByTag('#AISecurity', this)">#AISecurity</span>
-        <span class="tag-pill" onclick="filterByTag('#AttackSurface', this)">#AttackSurface</span>
-        <span class="tag-pill" onclick="filterByTag('#ModelSecurity', this)">#ModelSecurity</span>
-        <span class="tag-pill" onclick="filterByTag('#PromptInjection', this)">#PromptInjection</span>
+      <div class="tag-group">
+        <div class="tag-pill active" onclick="filterByTag('all', this)">All Topics</div>
+        <div class="tag-pill" onclick="filterByTag('#AISecurity', this)">#AISecurity</div>
+        <div class="tag-pill" onclick="filterByTag('#AttackSurface', this)">#AttackSurface</div>
+        <div class="tag-pill" onclick="filterByTag('#ModelSecurity', this)">#ModelSecurity</div>
+        <div class="tag-pill" onclick="filterByTag('#PromptInjection', this)">#PromptInjection</div>
       </div>
-    </div>
+    </section>
 
     <!-- Tabs Navigation -->
     <div class="tabs-header">
-      <button class="tab-btn active" onclick="switchTab('feed')" id="tab-feed">
-        <span>Published Feed</span>
-        <span class="count-badge" id="posts-count">0</span>
+      <button class="tab-btn active" id="tab-feed" onclick="switchTab('feed')">
+        Published Feed <span class="tab-count" id="posts-count">0</span>
       </button>
-      <button class="tab-btn" onclick="switchTab('rejections')" id="tab-rejections">
-        <span>Editorial Memory Rejections</span>
-        <span class="count-badge" id="rejections-count">0</span>
+      <button class="tab-btn" id="tab-rejections" onclick="switchTab('rejections')">
+        Editorial Memory Rejections <span class="tab-count" id="rejections-count">0</span>
       </button>
     </div>
 
-    <!-- Feed Content Tab -->
-    <div id="feed-tab-content" class="tab-content">
-      <div class="feed-list" id="feed-list"></div>
+    <!-- Feed Tab Content -->
+    <div id="feed-tab-content">
+      <div class="feed-list" id="feed-list">
+        <div class="empty-state">
+          <h3>No Published Posts Found</h3>
+          <p>Vector is discovering candidate topics and evaluating security relevance. Click 'Run Tick Now' to trigger a discovery run immediately!</p>
+          <button class="btn btn-primary" onclick="triggerTick()">⚡ Run Discovery Tick Now</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Rejections Content Tab -->
-    <div id="rejections-tab-content" class="tab-content" style="display:none;">
-      <div id="rejections-list"></div>
+    <!-- Rejections Tab Content -->
+    <div id="rejections-tab-content" style="display:none;">
+      <div class="rejections-list" id="rejections-list">
+        <div class="empty-state">
+          <h3>No Rejections Found</h3>
+          <p>Topics rejected during discovery will appear here.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -759,7 +848,7 @@ INDEX_HTML = """<!DOCTYPE html>
           }
         }
         if (data.last_tick_time) {
-          document.getElementById('last-time-text').textContent = 'Last tick: ' + formatDate(data.last_tick_time);
+          document.getElementById('last-time-text').textContent = 'Last: ' + formatDate(data.last_tick_time);
         }
         if (data.next_run_time) {
           targetNextRunTime = data.next_run_time;
@@ -814,7 +903,7 @@ INDEX_HTML = """<!DOCTYPE html>
 
     async function initNewAgent() {
       const btn = document.getElementById('init-btn');
-      btn.innerHTML = '<div class="spinner"></div> Initializing...';
+      btn.innerHTML = '<div class="spinner"></div> Init...';
       try {
         const res = await fetch('/api/agent/init', {
           method: 'POST',
@@ -838,7 +927,7 @@ INDEX_HTML = """<!DOCTYPE html>
     async function triggerTick() {
       if (!currentAgentId) return;
       const btn = document.getElementById('run-tick-btn');
-      btn.innerHTML = '<div class="spinner"></div> Running Tick...';
+      btn.innerHTML = '<div class="spinner"></div> Running...';
       try {
         await fetch('/api/agent/trigger-tick', { method: 'POST' });
         await loadFeed();
@@ -848,6 +937,17 @@ INDEX_HTML = """<!DOCTYPE html>
         console.error('Trigger tick error:', err);
       } finally {
         btn.innerHTML = '⚡ Run Tick Now';
+      }
+    }
+
+    async function clearRejections() {
+      if (!currentAgentId) return;
+      if (!confirm('Clear rejection history?')) return;
+      try {
+        await fetch('/api/agent/clear-rejections?agentId=' + currentAgentId, { method: 'POST' });
+        await loadRejections();
+      } catch (err) {
+        console.error('Clear rejections error:', err);
       }
     }
 
@@ -916,11 +1016,7 @@ INDEX_HTML = """<!DOCTYPE html>
         <div class="post-card">
           <div class="post-header">
             <div class="author-info">
-              <img src="/static/vector_icon.png" alt="Vector Avatar" style="width:36px; height:36px; border-radius:10px; border:1px solid rgba(6,182,212,0.4); object-fit:cover;">
-              <div>
-                <div class="author-name">Vector</div>
-                <div class="author-role">AI Security Researcher</div>
-              </div>
+              <div class="author-name">Vector AI</div>
             </div>
             <div class="post-time">${formatDate(post.created_at)}</div>
           </div>
@@ -928,7 +1024,7 @@ INDEX_HTML = """<!DOCTYPE html>
           <div class="post-body">${escapeHtml(post.text)}</div>
 
           <details class="rationale-details">
-            <summary>🔍 Vector's Editorial Rationale & Selection Logic</summary>
+            <summary>🔍 Vector's Editorial Rationale</summary>
             <div class="rationale-content">${escapeHtml(post.rationale)}</div>
           </details>
 
@@ -940,7 +1036,7 @@ INDEX_HTML = """<!DOCTYPE html>
                 </a>
               `).join('')}
             </div>
-            <div class="fingerprint-tag">ID: ${(post.topic_fingerprint || post.topicFingerprint || post.id).substring(0, 16)}...</div>
+            <div class="fingerprint-tag">ID: ${(post.topic_fingerprint || post.topicFingerprint || post.id).substring(0, 8)}</div>
           </div>
         </div>
       `).join('');
@@ -964,7 +1060,7 @@ INDEX_HTML = """<!DOCTYPE html>
       listEl.innerHTML = filtered.map(item => `
         <div class="rejection-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <span style="font-size:14px; font-weight:600; color:var(--text-primary);">${escapeHtml((item.topic_summary || '').split('\\n')[0])}</span>
+            <div class="rejection-title">${escapeHtml((item.topic_summary || '').split('\\n')[0])}</div>
             <span style="font-family:'Fira Code', monospace; font-size:12px; color:var(--text-muted);">${formatDate(item.seen_at)}</span>
           </div>
           <div class="rejection-reason">🚫 ${escapeHtml(item.reject_reason)}</div>
@@ -1001,7 +1097,7 @@ INDEX_HTML = """<!DOCTYPE html>
       if (!isoStr) return '';
       try {
         const d = new Date(isoStr);
-        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) + ' · ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       } catch (e) { return isoStr; }
     }
 
