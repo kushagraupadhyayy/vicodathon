@@ -824,22 +824,28 @@ INDEX_HTML = """<!DOCTYPE html>
     async function ensureAgentInitialized() {
       const savedInterval = localStorage.getItem('vicodathon_interval');
       if (savedInterval) {
-        document.getElementById('interval-select').value = savedInterval;
+        const select = document.getElementById('interval-select');
+        if (select) select.value = savedInterval;
       }
       try {
-        const url = '/api/agent/status' + (currentAgentId ? '?agentId=' + currentAgentId : '');
+        const url = '/api/agent/status' + (currentAgentId ? '?agentId=' + encodeURIComponent(currentAgentId) : '');
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data.active_agent_id) {
-            currentAgentId = data.active_agent_id;
+          if (data && data.active_agent_id) {
+            currentAgentId = String(data.active_agent_id);
             localStorage.setItem('vicodathon_agent_id', currentAgentId);
-            document.getElementById('agent-id-display').textContent = currentAgentId.substring(0, 18) + '...';
+            const displayEl = document.getElementById('agent-id-display');
+            if (displayEl) {
+              displayEl.textContent = currentAgentId.length > 18 ? currentAgentId.substring(0, 18) + '...' : currentAgentId;
+            }
           }
         } else if (res.status === 404) {
           currentAgentId = null;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Status check error:', e);
+      }
 
       if (!currentAgentId) {
         await initNewAgent();
@@ -853,11 +859,11 @@ INDEX_HTML = """<!DOCTYPE html>
 
     async function loadStatus() {
       try {
-        const url = '/api/agent/status' + (currentAgentId ? '?agentId=' + currentAgentId : '');
+        const url = '/api/agent/status' + (currentAgentId ? '?agentId=' + encodeURIComponent(currentAgentId) : '');
         const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.tick_minutes !== undefined && data.tick_minutes !== null) {
+        if (data && data.tick_minutes !== undefined && data.tick_minutes !== null) {
           const valStr = String(data.tick_minutes);
           const select = document.getElementById('interval-select');
           if (select) {
@@ -869,10 +875,11 @@ INDEX_HTML = """<!DOCTYPE html>
             }
           }
         }
-        if (data.last_tick_time) {
-          document.getElementById('last-time-text').textContent = 'Last: ' + formatDate(data.last_tick_time);
+        if (data && data.last_tick_time) {
+          const lastEl = document.getElementById('last-time-text');
+          if (lastEl) lastEl.textContent = 'Last: ' + formatDate(data.last_tick_time);
         }
-        if (data.next_run_time) {
+        if (data && data.next_run_time) {
           targetNextRunTime = data.next_run_time;
           updateCountdown();
         }
@@ -883,15 +890,17 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function updateCountdown() {
       if (!targetNextRunTime) {
-        document.getElementById('countdown-timer').textContent = '--:--';
+        const timerEl = document.getElementById('countdown-timer');
+        if (timerEl) timerEl.textContent = '--:--';
         return;
       }
       const now = new Date().getTime();
       const target = new Date(targetNextRunTime).getTime();
       const diff = target - now;
 
+      const timerEl = document.getElementById('countdown-timer');
       if (diff <= 0) {
-        document.getElementById('countdown-timer').textContent = '00:00';
+        if (timerEl) timerEl.textContent = '00:00';
         if (Math.abs(diff) < 3000) {
           loadStatus();
           loadFeed();
@@ -905,18 +914,18 @@ INDEX_HTML = """<!DOCTYPE html>
       const seconds = totalSecs % 60;
       const mm = String(minutes).padStart(2, '0');
       const ss = String(seconds).padStart(2, '0');
-      document.getElementById('countdown-timer').textContent = `${mm}:${ss}`;
+      if (timerEl) timerEl.textContent = `${mm}:${ss}`;
     }
 
     async function updateInterval(val) {
       const minutes = parseFloat(val);
       try {
-        const url = '/api/agent/interval?minutes=' + minutes + (currentAgentId ? '&agentId=' + currentAgentId : '');
+        const url = '/api/agent/interval?minutes=' + minutes + (currentAgentId ? '&agentId=' + encodeURIComponent(currentAgentId) : '');
         const res = await fetch(url, { method: 'POST' });
         if (res.ok) {
           localStorage.setItem('vicodathon_interval', minutes);
           const data = await res.json();
-          if (data.next_run_time) {
+          if (data && data.next_run_time) {
             targetNextRunTime = data.next_run_time;
           }
           await loadFeed();
@@ -931,32 +940,40 @@ INDEX_HTML = """<!DOCTYPE html>
 
     async function initNewAgent() {
       const btn = document.getElementById('init-btn');
-      btn.innerHTML = '<div class="spinner"></div> Init...';
+      if (btn) btn.innerHTML = '<div class="spinner"></div> Init...';
       try {
         const res = await fetch('/api/agent/init', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ persona: { name: 'Vector', domain: 'AI Security Researcher' } })
         });
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
         const data = await res.json();
-        currentAgentId = data.agentId;
-        localStorage.setItem('vicodathon_agent_id', currentAgentId);
-        document.getElementById('agent-id-display').textContent = currentAgentId.substring(0, 18) + '...';
-        await loadFeed();
-        await loadQueue();
-        await loadRejections();
-        await loadStatus();
+        if (data && data.agentId) {
+          currentAgentId = String(data.agentId);
+          localStorage.setItem('vicodathon_agent_id', currentAgentId);
+          const displayEl = document.getElementById('agent-id-display');
+          if (displayEl) {
+            displayEl.textContent = currentAgentId.length > 18 ? currentAgentId.substring(0, 18) + '...' : currentAgentId;
+          }
+          await loadFeed();
+          await loadQueue();
+          await loadRejections();
+          await loadStatus();
+        }
       } catch (err) {
-        alert('Failed to initialize agent: ' + err.message);
+        console.error('Failed to initialize agent:', err);
       } finally {
-        btn.innerHTML = '🤖 New Agent ID';
+        if (btn) btn.innerHTML = '🤖 New Agent ID';
       }
     }
 
     async function triggerTick() {
       if (!currentAgentId) return;
       const btn = document.getElementById('run-tick-btn');
-      btn.innerHTML = '<div class="spinner"></div> Running...';
+      if (btn) btn.innerHTML = '<div class="spinner"></div> Running...';
       try {
         await fetch('/api/agent/trigger-tick', { method: 'POST' });
         await loadFeed();
@@ -966,7 +983,7 @@ INDEX_HTML = """<!DOCTYPE html>
       } catch (err) {
         console.error('Trigger tick error:', err);
       } finally {
-        btn.innerHTML = '⚡ Run Tick Now';
+        if (btn) btn.innerHTML = '⚡ Run Tick Now';
       }
     }
 
@@ -974,7 +991,7 @@ INDEX_HTML = """<!DOCTYPE html>
       if (!currentAgentId) return;
       if (!confirm('Clear rejection history?')) return;
       try {
-        await fetch('/api/agent/clear-rejections?agentId=' + currentAgentId, { method: 'POST' });
+        await fetch('/api/agent/clear-rejections?agentId=' + encodeURIComponent(currentAgentId), { method: 'POST' });
         await loadRejections();
       } catch (err) {
         console.error('Clear rejections error:', err);
@@ -984,7 +1001,7 @@ INDEX_HTML = """<!DOCTYPE html>
     async function loadFeed() {
       if (!currentAgentId) return;
       try {
-        const res = await fetch('/api/agent/feed?agentId=' + currentAgentId);
+        const res = await fetch('/api/agent/feed?agentId=' + encodeURIComponent(currentAgentId));
         if (res.status === 404) {
           console.warn('Agent ID not found on server, initializing new agent...');
           await initNewAgent();
@@ -992,9 +1009,11 @@ INDEX_HTML = """<!DOCTYPE html>
         }
         if (!res.ok) return;
         const data = await res.json();
-        cachedPosts = data.posts || [];
-        document.getElementById('posts-count').textContent = cachedPosts.length;
-        document.getElementById('metric-posts-count').textContent = cachedPosts.length;
+        cachedPosts = (data && data.posts) || [];
+        const pCountEl = document.getElementById('posts-count');
+        const mCountEl = document.getElementById('metric-posts-count');
+        if (pCountEl) pCountEl.textContent = cachedPosts.length;
+        if (mCountEl) mCountEl.textContent = cachedPosts.length;
         renderFeed();
       } catch (err) {
         console.error('Error loading feed:', err);
@@ -1004,13 +1023,15 @@ INDEX_HTML = """<!DOCTYPE html>
     async function loadQueue() {
       if (!currentAgentId) return;
       try {
-        const res = await fetch('/api/agent/queue?agentId=' + currentAgentId);
+        const res = await fetch('/api/agent/queue?agentId=' + encodeURIComponent(currentAgentId));
         if (!res.ok) return;
         const data = await res.json();
-        cachedQueue = data.queue || [];
-        const count = data.count || cachedQueue.length;
-        document.getElementById('queue-count').textContent = count;
-        document.getElementById('metric-queue-count').textContent = count;
+        cachedQueue = (data && data.queue) || [];
+        const count = (data && data.count) !== undefined ? data.count : cachedQueue.length;
+        const qCountEl = document.getElementById('queue-count');
+        const mqCountEl = document.getElementById('metric-queue-count');
+        if (qCountEl) qCountEl.textContent = count;
+        if (mqCountEl) mqCountEl.textContent = count;
         renderQueue();
       } catch (err) {
         console.error('Error loading queue:', err);
@@ -1020,15 +1041,17 @@ INDEX_HTML = """<!DOCTYPE html>
     async function loadRejections() {
       if (!currentAgentId) return;
       try {
-        const res = await fetch('/api/agent/rejections?agentId=' + currentAgentId);
+        const res = await fetch('/api/agent/rejections?agentId=' + encodeURIComponent(currentAgentId));
         if (res.status === 404) {
           return;
         }
         if (!res.ok) return;
         const data = await res.json();
-        cachedRejections = data.rejections || [];
-        document.getElementById('rejections-count').textContent = cachedRejections.length;
-        document.getElementById('metric-rejections-count').textContent = cachedRejections.length;
+        cachedRejections = (data && data.rejections) || [];
+        const rCountEl = document.getElementById('rejections-count');
+        const mrCountEl = document.getElementById('metric-rejections-count');
+        if (rCountEl) rCountEl.textContent = cachedRejections.length;
+        if (mrCountEl) mrCountEl.textContent = cachedRejections.length;
         renderRejections();
       } catch (err) {
         console.error('Error loading rejections:', err);
@@ -1037,7 +1060,9 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function renderFeed() {
       const listEl = document.getElementById('feed-list');
-      const searchQuery = (document.getElementById('search-input').value || '').toLowerCase();
+      if (!listEl) return;
+      const searchEl = document.getElementById('search-input');
+      const searchQuery = searchEl ? searchEl.value.toLowerCase() : '';
 
       let filtered = cachedPosts.filter(post => {
         const matchesSearch = !searchQuery || 
@@ -1083,7 +1108,7 @@ INDEX_HTML = """<!DOCTYPE html>
                 </a>
               `).join('')}
             </div>
-            <div class="fingerprint-tag">ID: ${(post.topic_fingerprint || post.topicFingerprint || post.id).substring(0, 8)}</div>
+            <div class="fingerprint-tag">ID: ${(post.topic_fingerprint || post.topicFingerprint || post.id || '').substring(0, 8)}</div>
           </div>
         </div>
       `).join('');
@@ -1091,13 +1116,15 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function renderQueue() {
       const listEl = document.getElementById('queue-list');
-      const searchQuery = (document.getElementById('search-input').value || '').toLowerCase();
+      if (!listEl) return;
+      const searchEl = document.getElementById('search-input');
+      const searchQuery = searchEl ? searchEl.value.toLowerCase() : '';
 
       let filtered = cachedQueue.filter(item => {
         return !searchQuery || 
-          item.title.toLowerCase().includes(searchQuery) || 
-          item.summary.toLowerCase().includes(searchQuery) ||
-          item.decision_reason.toLowerCase().includes(searchQuery);
+          (item.title || '').toLowerCase().includes(searchQuery) || 
+          (item.summary || '').toLowerCase().includes(searchQuery) ||
+          (item.decision_reason || '').toLowerCase().includes(searchQuery);
       });
 
       if (filtered.length === 0) {
@@ -1123,15 +1150,15 @@ INDEX_HTML = """<!DOCTYPE html>
           </div>
 
           <div style="font-family:'Outfit', sans-serif; font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:10px;">
-            ${escapeHtml(item.title)}
+            ${escapeHtml(item.title || '')}
           </div>
 
           <div class="post-body" style="color:var(--text-secondary); font-size:14px; margin-bottom:14px;">
-            ${escapeHtml(item.summary)}
+            ${escapeHtml(item.summary || '')}
           </div>
 
           <div style="background:rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.2); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--accent-cyan); margin-bottom:12px;">
-            <strong>✓ Editorial Approval Reason:</strong> ${escapeHtml(item.decision_reason)}
+            <strong>✓ Editorial Approval Reason:</strong> ${escapeHtml(item.decision_reason || '')}
           </div>
 
           <div class="post-footer">
@@ -1142,7 +1169,7 @@ INDEX_HTML = """<!DOCTYPE html>
                 </a>
               `).join('')}
             </div>
-            <div class="fingerprint-tag">Fingerprint: ${(item.topic_fingerprint || item.id).substring(0, 8)}</div>
+            <div class="fingerprint-tag">Fingerprint: ${(item.topic_fingerprint || item.id || '').substring(0, 8)}</div>
           </div>
         </div>
       `).join('');
@@ -1150,12 +1177,14 @@ INDEX_HTML = """<!DOCTYPE html>
 
     function renderRejections() {
       const listEl = document.getElementById('rejections-list');
-      const searchQuery = (document.getElementById('search-input').value || '').toLowerCase();
+      if (!listEl) return;
+      const searchEl = document.getElementById('search-input');
+      const searchQuery = searchEl ? searchEl.value.toLowerCase() : '';
 
       let filtered = cachedRejections.filter(item => {
         return !searchQuery || 
-          item.topic_summary.toLowerCase().includes(searchQuery) || 
-          item.reject_reason.toLowerCase().includes(searchQuery);
+          (item.topic_summary || '').toLowerCase().includes(searchQuery) || 
+          (item.reject_reason || '').toLowerCase().includes(searchQuery);
       });
 
       if (filtered.length === 0) {
@@ -1169,7 +1198,7 @@ INDEX_HTML = """<!DOCTYPE html>
             <div class="rejection-title">${escapeHtml((item.topic_summary || '').split('\\n')[0])}</div>
             <span style="font-family:'Fira Code', monospace; font-size:12px; color:var(--text-muted);">${formatDate(item.seen_at)}</span>
           </div>
-          <div class="rejection-reason">🚫 ${escapeHtml(item.reject_reason)}</div>
+          <div class="rejection-reason">🚫 ${escapeHtml(item.reject_reason || '')}</div>
         </div>
       `).join('');
     }
@@ -1188,13 +1217,19 @@ INDEX_HTML = """<!DOCTYPE html>
     }
 
     function switchTab(tab) {
-      document.getElementById('tab-feed').classList.toggle('active', tab === 'feed');
-      document.getElementById('tab-queue').classList.toggle('active', tab === 'queue');
-      document.getElementById('tab-rejections').classList.toggle('active', tab === 'rejections');
+      const tabFeed = document.getElementById('tab-feed');
+      const tabQueue = document.getElementById('tab-queue');
+      const tabRejections = document.getElementById('tab-rejections');
+      if (tabFeed) tabFeed.classList.toggle('active', tab === 'feed');
+      if (tabQueue) tabQueue.classList.toggle('active', tab === 'queue');
+      if (tabRejections) tabRejections.classList.toggle('active', tab === 'rejections');
 
-      document.getElementById('feed-tab-content').style.display = tab === 'feed' ? 'block' : 'none';
-      document.getElementById('queue-tab-content').style.display = tab === 'queue' ? 'block' : 'none';
-      document.getElementById('rejections-tab-content').style.display = tab === 'rejections' ? 'block' : 'none';
+      const feedContent = document.getElementById('feed-tab-content');
+      const queueContent = document.getElementById('queue-tab-content');
+      const rejectionsContent = document.getElementById('rejections-tab-content');
+      if (feedContent) feedContent.style.display = tab === 'feed' ? 'block' : 'none';
+      if (queueContent) queueContent.style.display = tab === 'queue' ? 'block' : 'none';
+      if (rejectionsContent) rejectionsContent.style.display = tab === 'rejections' ? 'block' : 'none';
     }
 
     function copyAgentId() {
@@ -1212,15 +1247,22 @@ INDEX_HTML = """<!DOCTYPE html>
     }
 
     function getDomain(urlStr) {
+      if (!urlStr || typeof urlStr !== 'string') return 'source';
       try {
-        const url = new URL(urlStr);
-        return url.hostname.replace('www.', '');
-      } catch(e) { return 'source'; }
+        let validUrl = urlStr.trim();
+        if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+          validUrl = 'https://' + validUrl;
+        }
+        const url = new URL(validUrl);
+        return url.hostname.replace(/^www\./, '') || 'source';
+      } catch(e) {
+        return 'source';
+      }
     }
 
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     setInterval(() => {
